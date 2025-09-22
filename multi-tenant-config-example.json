@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "hammertech-sarahtraining": {
+      "command": "node",
+      "args": ["/Users/trefgare/Documents/HT API/hammertech-mcp-server/dist/index.js"],
+      "env": {
+        "HAMMERTECH_JWT_TOKEN": "your-sarahtraining-token-here",
+        "HAMMERTECH_REGION": "au"
+      }
+    },
+    "hammertech-production": {
+      "command": "node",
+      "args": ["/Users/trefgare/Documents/HT API/hammertech-mcp-server/dist/index.js"],
+      "env": {
+        "HAMMERTECH_JWT_TOKEN": "your-production-token-here", 
+        "HAMMERTECH_REGION": "us"
+      }
+    },
+    "hammertech-demo": {
+      "command": "node",
+      "args": ["/Users/trefgare/Documents/HT API/hammertech-mcp-server/dist/index.js"],
+      "env": {
+        "HAMMERTECH_JWT_TOKEN": "your-demo-token-here",
+        "HAMMERTECH_REGION": "eu"
+      }
+    }
+  }
+}

@@ -102,6 +102,8 @@ export class HammerTechMCPServer {
             return await this.handleGetIoTEvent(args);
           case 'create_iot_event':
             return await this.handleCreateIoTEvent(args);
+          case 'create_iot_event_with_image':
+            return await this.handleCreateIoTEventWithImage(args);
 
           default:
             throw new Error(`Unknown tool: ${name}`);
@@ -125,7 +127,7 @@ export class HammerTechMCPServer {
       // Projects
       {
         name: 'list_projects',
-        description: 'List projects with optional filtering and pagination',
+        description: 'List construction projects with optional filtering and pagination',
         inputSchema: {
           type: 'object',
           properties: {
@@ -139,7 +141,7 @@ export class HammerTechMCPServer {
       },
       {
         name: 'get_project',
-        description: 'Retrieve a specific project by ID',
+        description: 'Retrieve a specific construction project by ID',
         inputSchema: {
           type: 'object',
           properties: {
@@ -238,7 +240,7 @@ export class HammerTechMCPServer {
       // Employers
       {
         name: 'list_employers',
-        description: 'List employers with optional filtering and pagination',
+        description: 'List employers (companies/organizations associated with specific projects) with optional filtering and pagination',
         inputSchema: {
           type: 'object',
           properties: {
@@ -252,7 +254,7 @@ export class HammerTechMCPServer {
       },
       {
         name: 'get_employer',
-        description: 'Retrieve a specific employer by ID',
+        description: 'Retrieve a specific employer by ID (company/organization associated with a project)',
         inputSchema: {
           type: 'object',
           properties: {
@@ -263,7 +265,7 @@ export class HammerTechMCPServer {
       },
       {
         name: 'create_employer',
-        description: 'Create a new employer',
+        description: 'Create a new employer (associate a company/organization with a project)',
         inputSchema: {
           type: 'object',
           properties: {
@@ -277,7 +279,7 @@ export class HammerTechMCPServer {
       // Employer Profiles
       {
         name: 'list_employer_profiles',
-        description: 'List employer profiles with optional filtering and pagination',
+        description: 'List employer profiles (master records for companies/organizations) with optional filtering and pagination',
         inputSchema: {
           type: 'object',
           properties: {
@@ -291,7 +293,7 @@ export class HammerTechMCPServer {
       },
       {
         name: 'get_employer_profile',
-        description: 'Retrieve a specific employer profile by ID',
+        description: 'Retrieve a specific employer profile by ID (master company/organization record)',
         inputSchema: {
           type: 'object',
           properties: {
@@ -302,7 +304,7 @@ export class HammerTechMCPServer {
       },
       {
         name: 'create_employer_profile',
-        description: 'Create a new employer profile',
+        description: 'Create a new employer profile (master company/organization record)',
         inputSchema: {
           type: 'object',
           properties: {
@@ -315,7 +317,7 @@ export class HammerTechMCPServer {
       },
       {
         name: 'update_employer_profile',
-        description: 'Update an existing employer profile',
+        description: 'Update an existing employer profile (master company/organization record)',
         inputSchema: {
           type: 'object',
           properties: {
@@ -331,7 +333,7 @@ export class HammerTechMCPServer {
       // IoT Vendors
       {
         name: 'list_iot_vendors',
-        description: 'List IoT vendors with optional filtering and pagination',
+        description: 'List IoT vendors (manufacturers/providers of IoT devices) with optional filtering and pagination',
         inputSchema: {
           type: 'object',
           properties: {
@@ -345,7 +347,7 @@ export class HammerTechMCPServer {
       },
       {
         name: 'get_iot_vendor',
-        description: 'Retrieve a specific IoT vendor by ID',
+        description: 'Retrieve a specific IoT vendor by ID (manufacturer/provider of IoT devices)',
         inputSchema: {
           type: 'object',
           properties: {
@@ -356,7 +358,7 @@ export class HammerTechMCPServer {
       },
       {
         name: 'create_iot_vendor',
-        description: 'Create a new IoT vendor',
+        description: 'Create a new IoT vendor (manufacturer/provider of IoT devices)',
         inputSchema: {
           type: 'object',
           properties: {
@@ -395,7 +397,7 @@ export class HammerTechMCPServer {
       },
       {
         name: 'create_iot_event',
-        description: 'Create a new IoT event with sensor readings, alerts, or monitored activities',
+        description: 'Create a new IoT event record capturing data points from connected IoT devices with associated metadata, optional structured content, and file attachments',
         inputSchema: {
           type: 'object',
           properties: {
@@ -413,7 +415,6 @@ export class HammerTechMCPServer {
               items: {
                 type: 'object',
                 properties: {
-                  id: { type: 'string', description: 'Unique file ID (UUID format, optional)', format: 'uuid' },
                   fileName: { type: 'string', description: 'Original filename (must have extension: .png, .jpg, .jpeg, .pdf, .doc, .docx, .xls, .xlsx)' },
                   base64FileContent: { type: 'string', description: 'File content encoded as base64 string' },
                   annotation: { type: 'string', description: 'File annotation/notes (optional)' }
@@ -423,6 +424,27 @@ export class HammerTechMCPServer {
             }
           },
           required: ['projectId', 'iotVendorId', 'iotEventTypeId'],
+        },
+      },
+      {
+        name: 'create_iot_event_with_image',
+        description: 'Create a new IoT event record with an uploaded image attachment. Use when an image has been uploaded in the conversation.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            projectId: { type: 'string', description: 'Project UUID associated with the IoT Event', format: 'uuid' },
+            eventDate: { type: 'string', description: 'Event date/time in ISO 8601 format (YYYY-MM-DDThh:mm:ss), e.g. 2024-01-15T14:30:00. If not provided, current date/time will be used.', format: 'date-time' },
+            iotVendorId: { type: 'string', description: 'IoT Vendor UUID', format: 'uuid' },
+            iotEventTypeId: { type: 'string', description: 'IoT Event Type UUID', format: 'uuid' },
+            locationId: { type: 'string', description: 'Location Hierarchy UUID (optional)', format: 'uuid' },
+            description: { type: 'string', description: 'Text description of the event (optional)' },
+            contentType: { type: 'string', description: 'Content type: application/json, application/xml, or text/plain (optional)' },
+            content: { type: 'string', description: 'Content text of the event (optional)' },
+            imageBase64: { type: 'string', description: 'Base64-encoded image data from uploaded conversation image' },
+            imageFileName: { type: 'string', description: 'Filename for the image (e.g., "security_camera.jpg", "incident_photo.png")' },
+            imageAnnotation: { type: 'string', description: 'Optional annotation/description for the image attachment' }
+          },
+          required: ['projectId', 'iotVendorId', 'iotEventTypeId', 'imageBase64', 'imageFileName'],
         },
       },
     ];
@@ -596,6 +618,50 @@ export class HammerTechMCPServer {
     }
     
     const result = await this.apiClient!.createIoTEvent(args);
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    };
+  }
+
+  private async handleCreateIoTEventWithImage(args: any): Promise<CallToolResult> {
+    // Set current date/time if eventDate is not provided
+    if (!args.eventDate) {
+      args.eventDate = new Date().toISOString();
+    }
+    
+    // Validate image file extension
+    const allowedImageExtensions = ['.png', '.jpg', '.jpeg'];
+    const fileExtension = args.imageFileName.toLowerCase().substring(args.imageFileName.lastIndexOf('.'));
+    if (!allowedImageExtensions.includes(fileExtension)) {
+      return {
+        content: [{ 
+          type: 'text', 
+          text: `Error: Image file type not supported. File "${args.imageFileName}" has extension "${fileExtension}". Allowed image types: PNG, JPEG` 
+        }],
+      };
+    }
+    
+    // Create attachment from image data
+    const attachment = {
+      fileName: args.imageFileName,
+      base64FileContent: args.imageBase64,
+      annotation: args.imageAnnotation || undefined
+    };
+    
+    // Build IoT event data
+    const iotEventData = {
+      projectId: args.projectId,
+      eventDate: args.eventDate,
+      iotVendorId: args.iotVendorId,
+      iotEventTypeId: args.iotEventTypeId,
+      locationId: args.locationId,
+      description: args.description,
+      contentType: args.contentType,
+      content: args.content,
+      attachments: [attachment]
+    };
+    
+    const result = await this.apiClient!.createIoTEvent(iotEventData);
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     };

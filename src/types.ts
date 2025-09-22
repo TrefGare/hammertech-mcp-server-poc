@@ -116,9 +116,19 @@ export interface CreateEmployerRequest {
 }
 
 export interface CreateIoTEventRequest {
-  eventTypeId: string;
-  timestamp?: string;
-  deviceData?: any;
+  projectId?: string;
+  eventDate?: string;
+  iotVendorId?: string;
+  iotEventTypeId?: string;
+  locationId?: string;
+  description?: string;
+  contentType?: string;
+  content?: string;
+  attachments?: Array<{
+    fileName?: string;
+    base64FileContent?: string;
+    annotation?: string;
+  }>;
 }
 
 // JWT Token Response - HammerTech format
