@@ -152,7 +152,7 @@ export class HammerTechMCPServer {
       // Workers
       {
         name: 'list_workers',
-        description: 'List workers with optional filtering and pagination',
+        description: 'List workers (per-project records linking Worker Profiles to specific Projects) with optional filtering and pagination',
         inputSchema: {
           type: 'object',
           properties: {
@@ -166,7 +166,7 @@ export class HammerTechMCPServer {
       },
       {
         name: 'get_worker',
-        description: 'Retrieve a specific worker by ID',
+        description: 'Retrieve a specific worker by ID (per-project record connecting a Worker Profile to a Project)',
         inputSchema: {
           type: 'object',
           properties: {
@@ -179,7 +179,7 @@ export class HammerTechMCPServer {
       // Worker Profiles
       {
         name: 'list_worker_profiles',
-        description: 'List worker profiles with optional filtering and pagination',
+        description: 'List worker profiles (unique individuals/people within the company) with optional filtering and pagination',
         inputSchema: {
           type: 'object',
           properties: {
@@ -193,7 +193,7 @@ export class HammerTechMCPServer {
       },
       {
         name: 'get_worker_profile',
-        description: 'Retrieve a specific worker profile by ID',
+        description: 'Retrieve a specific worker profile by ID (unique individual/person within the company)',
         inputSchema: {
           type: 'object',
           properties: {
@@ -205,7 +205,7 @@ export class HammerTechMCPServer {
       },
       {
         name: 'create_worker_profile',
-        description: 'Create a new worker profile',
+        description: 'Create a new worker profile (unique individual/person within the company)',
         inputSchema: {
           type: 'object',
           properties: {
@@ -220,7 +220,7 @@ export class HammerTechMCPServer {
       },
       {
         name: 'update_worker_profile',
-        description: 'Update an existing worker profile',
+        description: 'Update an existing worker profile (unique individual/person within the company)',
         inputSchema: {
           type: 'object',
           properties: {
