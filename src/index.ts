@@ -395,15 +395,34 @@ export class HammerTechMCPServer {
       },
       {
         name: 'create_iot_event',
-        description: 'Create a new IoT event',
+        description: 'Create a new IoT event with sensor readings, alerts, or monitored activities',
         inputSchema: {
           type: 'object',
           properties: {
-            eventTypeId: { type: 'string', description: 'IoT event type ID' },
-            timestamp: { type: 'string', description: 'Event timestamp in ISO format' },
-            deviceData: { type: 'object', description: 'Device-specific event data' },
+            projectId: { type: 'string', description: 'Project UUID associated with the IoT Event', format: 'uuid' },
+            eventDate: { type: 'string', description: 'Event date/time in ISO 8601 format (YYYY-MM-DDThh:mm:ss), e.g. 2024-01-15T14:30:00. If not provided, current date/time will be used.', format: 'date-time' },
+            iotVendorId: { type: 'string', description: 'IoT Vendor UUID', format: 'uuid' },
+            iotEventTypeId: { type: 'string', description: 'IoT Event Type UUID', format: 'uuid' },
+            locationId: { type: 'string', description: 'Location Hierarchy UUID (optional)', format: 'uuid' },
+            description: { type: 'string', description: 'Text description of the event (optional)' },
+            contentType: { type: 'string', description: 'Content type: application/json, application/xml, or text/plain (optional)' },
+            content: { type: 'string', description: 'Content text of the event (optional)' },
+            attachments: {
+              type: 'array',
+              description: 'File attachments as base64-encoded content (optional). Supported file types: PNG, JPEG, PDF, DOC, DOCX, XLS, XLSX',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', description: 'Unique file ID (UUID format, optional)', format: 'uuid' },
+                  fileName: { type: 'string', description: 'Original filename (must have extension: .png, .jpg, .jpeg, .pdf, .doc, .docx, .xls, .xlsx)' },
+                  base64FileContent: { type: 'string', description: 'File content encoded as base64 string' },
+                  annotation: { type: 'string', description: 'File annotation/notes (optional)' }
+                },
+                required: ['fileName', 'base64FileContent']
+              }
+            }
           },
-          required: ['eventTypeId'],
+          required: ['projectId', 'iotVendorId', 'iotEventTypeId'],
         },
       },
     ];
@@ -553,6 +572,29 @@ export class HammerTechMCPServer {
   }
 
   private async handleCreateIoTEvent(args: any): Promise<CallToolResult> {
+    // Set current date/time if eventDate is not provided
+    if (!args.eventDate) {
+      args.eventDate = new Date().toISOString();
+    }
+    
+    // Validate file types for attachments
+    if (args.attachments && Array.isArray(args.attachments)) {
+      const allowedExtensions = ['.png', '.jpg', '.jpeg', '.pdf', '.doc', '.docx', '.xls', '.xlsx'];
+      for (const attachment of args.attachments) {
+        if (attachment.fileName) {
+          const fileExtension = attachment.fileName.toLowerCase().substring(attachment.fileName.lastIndexOf('.'));
+          if (!allowedExtensions.includes(fileExtension)) {
+            return {
+              content: [{ 
+                type: 'text', 
+                text: `Error: File type not supported. File "${attachment.fileName}" has extension "${fileExtension}". Allowed types: PNG, JPEG, PDF, DOC, DOCX, XLS, XLSX` 
+              }],
+            };
+          }
+        }
+      }
+    }
+    
     const result = await this.apiClient!.createIoTEvent(args);
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
