@@ -1,60 +1,1223 @@
 #!/usr/bin/env node
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { HammerTechApiClient } from "./api-client.js";
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { HammerTechApiClient } from './api-client.js';
+import { CreateWorkerRequest } from './types.js';
 export declare class HammerTechMCPServer {
-    server: McpServer;
+    server: Server;
     apiClient: HammerTechApiClient | null;
     constructor();
-    /** --------------------- RESOURCES --------------------- */
-    registerResources(): void;
-    /** --------------------- PROMPTS --------------------- */
-    registerPrompts(): void;
-    /** --------------------- TOOLS --------------------- */
-    registerTools(): void;
-    /** --------------------- HELP SITE HELPERS --------------------- */
-    fetchHelpArticle(idOrSlug: string, locale?: string): Promise<{
-        url: string;
-        status: number;
-        markdown: null;
-        html: null;
-        title?: undefined;
-        error?: undefined;
+    setupToolHandlers(): void;
+    getAvailableTools(): ({
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                skip?: undefined;
+                take?: undefined;
+                sortBy?: undefined;
+                modifiedSince?: undefined;
+                projectId?: undefined;
+                id?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                businessName?: undefined;
+                description?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                name?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                locale?: undefined;
+                limit?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required?: undefined;
+        };
     } | {
-        url: string;
-        title: string;
-        html: string;
-        markdown: string;
-        status?: undefined;
-        error?: undefined;
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                skip: {
+                    type: string;
+                    description: string;
+                };
+                take: {
+                    type: string;
+                    description: string;
+                };
+                sortBy: {
+                    type: string;
+                    description: string;
+                };
+                modifiedSince: {
+                    type: string;
+                    description: string;
+                };
+                projectId: {
+                    type: string;
+                    description: string;
+                    format?: undefined;
+                };
+                id?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                businessName?: undefined;
+                description?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                name?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                locale?: undefined;
+                limit?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required?: undefined;
+        };
     } | {
-        url: string;
-        error: string;
-        markdown: null;
-        html: null;
-        status?: undefined;
-        title?: undefined;
-    }>;
-    searchHelp(q: string, locale?: string, limit?: number): Promise<{
-        url: string;
-        items: never[];
-        status: number;
-        error?: undefined;
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                id: {
+                    type: string;
+                    description: string;
+                };
+                skip?: undefined;
+                take?: undefined;
+                sortBy?: undefined;
+                modifiedSince?: undefined;
+                projectId?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                businessName?: undefined;
+                description?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                name?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                locale?: undefined;
+                limit?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required: string[];
+        };
     } | {
-        url: string;
-        items: {
-            idOrSlug: string;
-            title: string;
-            url: string;
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                skip: {
+                    type: string;
+                    description?: undefined;
+                };
+                take: {
+                    type: string;
+                    description?: undefined;
+                };
+                sortBy: {
+                    type: string;
+                    description?: undefined;
+                };
+                modifiedSince: {
+                    type: string;
+                    description?: undefined;
+                };
+                projectId: {
+                    type: string;
+                    description?: undefined;
+                    format?: undefined;
+                };
+                id?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                businessName?: undefined;
+                description?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                name?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                locale?: undefined;
+                limit?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required?: undefined;
+        };
+    } | {
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                projectId: {
+                    type: string;
+                    description: string;
+                    format: string;
+                };
+                employerId: {
+                    type: string;
+                    description: string;
+                    format: string;
+                };
+                workerProfileId: {
+                    type: string;
+                    description: string;
+                    format: string;
+                };
+                inductionChecklistSignatureFileId: {
+                    type: string;
+                    description: string;
+                    format: string;
+                };
+                skip?: undefined;
+                take?: undefined;
+                sortBy?: undefined;
+                modifiedSince?: undefined;
+                id?: undefined;
+                includeConfidentialData?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                businessName?: undefined;
+                description?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                name?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                locale?: undefined;
+                limit?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required: string[];
+        };
+    } | {
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                id: {
+                    type: string;
+                    description: string;
+                };
+                includeConfidentialData: {
+                    type: string;
+                    description: string;
+                };
+                skip?: undefined;
+                take?: undefined;
+                sortBy?: undefined;
+                modifiedSince?: undefined;
+                projectId?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                businessName?: undefined;
+                description?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                name?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                locale?: undefined;
+                limit?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required: string[];
+        };
+    } | {
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                firstName: {
+                    type: string;
+                    description: string;
+                };
+                lastName: {
+                    type: string;
+                    description: string;
+                };
+                dateOfBirth: {
+                    type: string;
+                    description: string;
+                };
+                jobTitle: {
+                    type: string;
+                    description: string;
+                };
+                preferredCommunicationLanguage: {
+                    type: string;
+                    description: string;
+                };
+                email: {
+                    type: string;
+                    description: string;
+                };
+                skip?: undefined;
+                take?: undefined;
+                sortBy?: undefined;
+                modifiedSince?: undefined;
+                projectId?: undefined;
+                id?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                businessName?: undefined;
+                description?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                name?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                locale?: undefined;
+                limit?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required: string[];
+        };
+    } | {
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                id: {
+                    type: string;
+                    description: string;
+                };
+                firstName: {
+                    type: string;
+                    description?: undefined;
+                };
+                lastName: {
+                    type: string;
+                    description?: undefined;
+                };
+                dateOfBirth: {
+                    type: string;
+                    description: string;
+                };
+                jobTitle: {
+                    type: string;
+                    description: string;
+                };
+                preferredCommunicationLanguage: {
+                    type: string;
+                    description?: undefined;
+                };
+                email: {
+                    type: string;
+                    description?: undefined;
+                };
+                skip?: undefined;
+                take?: undefined;
+                sortBy?: undefined;
+                modifiedSince?: undefined;
+                projectId?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                businessName?: undefined;
+                description?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                name?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                locale?: undefined;
+                limit?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required: string[];
+        };
+    } | {
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                businessName: {
+                    type: string;
+                    description: string;
+                };
+                description: {
+                    type: string;
+                    description: string;
+                };
+                skip?: undefined;
+                take?: undefined;
+                sortBy?: undefined;
+                modifiedSince?: undefined;
+                projectId?: undefined;
+                id?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                name?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                locale?: undefined;
+                limit?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required: string[];
+        };
+    } | {
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                businessName: {
+                    type: string;
+                    description: string;
+                };
+                abn: {
+                    type: string;
+                    description: string;
+                };
+                internalIdentifier: {
+                    type: string;
+                    description: string;
+                };
+                skip?: undefined;
+                take?: undefined;
+                sortBy?: undefined;
+                modifiedSince?: undefined;
+                projectId?: undefined;
+                id?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                description?: undefined;
+                name?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                locale?: undefined;
+                limit?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required: string[];
+        };
+    } | {
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                id: {
+                    type: string;
+                    description: string;
+                };
+                businessName: {
+                    type: string;
+                    description: string;
+                };
+                abn: {
+                    type: string;
+                    description: string;
+                };
+                internalIdentifier: {
+                    type: string;
+                    description: string;
+                };
+                skip?: undefined;
+                take?: undefined;
+                sortBy?: undefined;
+                modifiedSince?: undefined;
+                projectId?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                description?: undefined;
+                name?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                locale?: undefined;
+                limit?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required: string[];
+        };
+    } | {
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                name: {
+                    type: string;
+                    description: string;
+                };
+                description: {
+                    type: string;
+                    description: string;
+                };
+                skip?: undefined;
+                take?: undefined;
+                sortBy?: undefined;
+                modifiedSince?: undefined;
+                projectId?: undefined;
+                id?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                businessName?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                locale?: undefined;
+                limit?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required: string[];
+        };
+    } | {
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                projectId: {
+                    type: string;
+                    description: string;
+                    format: string;
+                };
+                eventDate: {
+                    type: string;
+                    description: string;
+                    format: string;
+                };
+                iotVendorId: {
+                    type: string;
+                    description: string;
+                    format: string;
+                };
+                iotEventTypeId: {
+                    type: string;
+                    description: string;
+                    format: string;
+                };
+                locationId: {
+                    type: string;
+                    description: string;
+                    format: string;
+                };
+                description: {
+                    type: string;
+                    description: string;
+                };
+                contentType: {
+                    type: string;
+                    description: string;
+                };
+                content: {
+                    type: string;
+                    description: string;
+                };
+                attachments: {
+                    type: string;
+                    description: string;
+                    items: {
+                        type: string;
+                        properties: {
+                            fileName: {
+                                type: string;
+                                description: string;
+                            };
+                            base64FileContent: {
+                                type: string;
+                                description: string;
+                            };
+                            annotation: {
+                                type: string;
+                                description: string;
+                            };
+                        };
+                        required: string[];
+                    };
+                };
+                skip?: undefined;
+                take?: undefined;
+                sortBy?: undefined;
+                modifiedSince?: undefined;
+                id?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                businessName?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                name?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                locale?: undefined;
+                limit?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required: string[];
+        };
+    } | {
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                projectId: {
+                    type: string;
+                    description: string;
+                    format: string;
+                };
+                eventDate: {
+                    type: string;
+                    description: string;
+                    format: string;
+                };
+                iotVendorId: {
+                    type: string;
+                    description: string;
+                    format: string;
+                };
+                iotEventTypeId: {
+                    type: string;
+                    description: string;
+                    format: string;
+                };
+                locationId: {
+                    type: string;
+                    description: string;
+                    format: string;
+                };
+                description: {
+                    type: string;
+                    description: string;
+                };
+                contentType: {
+                    type: string;
+                    description: string;
+                };
+                content: {
+                    type: string;
+                    description: string;
+                };
+                imageBase64: {
+                    type: string;
+                    description: string;
+                };
+                imageFileName: {
+                    type: string;
+                    description: string;
+                };
+                imageAnnotation: {
+                    type: string;
+                    description: string;
+                };
+                skip?: undefined;
+                take?: undefined;
+                sortBy?: undefined;
+                modifiedSince?: undefined;
+                id?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                businessName?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                name?: undefined;
+                attachments?: undefined;
+                q?: undefined;
+                locale?: undefined;
+                limit?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required: string[];
+        };
+    } | {
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                q: {
+                    type: string;
+                    description: string;
+                };
+                locale: {
+                    type: string;
+                    description: string;
+                };
+                limit: {
+                    type: string;
+                    description: string;
+                };
+                skip?: undefined;
+                take?: undefined;
+                sortBy?: undefined;
+                modifiedSince?: undefined;
+                projectId?: undefined;
+                id?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                businessName?: undefined;
+                description?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                name?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required: string[];
+        };
+    } | {
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                idOrSlug: {
+                    type: string;
+                    description: string;
+                };
+                locale: {
+                    type: string;
+                    description: string;
+                };
+                format: {
+                    type: string;
+                    description: string;
+                };
+                skip?: undefined;
+                take?: undefined;
+                sortBy?: undefined;
+                modifiedSince?: undefined;
+                projectId?: undefined;
+                id?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                businessName?: undefined;
+                description?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                name?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                limit?: undefined;
+                maxBullets?: undefined;
+            };
+            required: string[];
+        };
+    } | {
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                idOrSlug: {
+                    type: string;
+                    description: string;
+                };
+                locale: {
+                    type: string;
+                    description: string;
+                };
+                maxBullets: {
+                    type: string;
+                    description: string;
+                };
+                skip?: undefined;
+                take?: undefined;
+                sortBy?: undefined;
+                modifiedSince?: undefined;
+                projectId?: undefined;
+                id?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                businessName?: undefined;
+                description?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                name?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                limit?: undefined;
+                format?: undefined;
+            };
+            required: string[];
+        };
+    })[];
+    handleStatusPing(): {
+        content: {
+            type: string;
+            text: string;
         }[];
-        status?: undefined;
-        error?: undefined;
-    } | {
-        url: null;
-        items: never[];
-        error: string;
-        status?: undefined;
+    };
+    handleListProjects(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
     }>;
-    /** --------------------- API CLIENT --------------------- */
+    handleGetProject(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleListWorkers(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleGetWorker(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleCreateWorker(args: CreateWorkerRequest): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleListWorkerProfiles(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleGetWorkerProfile(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleCreateWorkerProfile(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleUpdateWorkerProfile(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleListEmployers(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleGetEmployer(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleCreateEmployer(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleListEmployerProfiles(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleGetEmployerProfile(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleCreateEmployerProfile(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleUpdateEmployerProfile(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleListIoTVendors(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleGetIoTVendor(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleCreateIoTVendor(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleListIoTEvents(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleGetIoTEvent(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleCreateIoTEvent(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleCreateIoTEventWithImage(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleHelpSearch(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleHelpGet(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+        isError: boolean;
+    } | {
+        content: {
+            type: string;
+            text: string;
+        }[];
+        isError?: undefined;
+    }>;
+    handleHelpSummarize(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+        isError: boolean;
+    } | {
+        content: {
+            type: string;
+            text: string;
+        }[];
+        isError?: undefined;
+    }>;
+    fetchHelpArticle(idOrSlug: string, locale?: string): Promise<any>;
+    searchHelp(q: string, locale?: string, limit?: number): Promise<any>;
+    handleListJobTitles(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
     initializeApiClient(): void;
     run(): Promise<void>;
 }

@@ -141,7 +141,7 @@ export class HammerTechMCPServer {
 
     // Connectivity / sanity check tool
     this.server.registerTool(
-      "status.ping",
+      "status_ping",
       {
         title: "Ping",
         description: "Check server/version and token/region presence.",
@@ -336,6 +336,29 @@ export class HammerTechMCPServer {
       withApi(async ({ id }) => json(await this.apiClient.getWorker(id)))
     );
 
+    this.server.registerTool(
+      "create_worker",
+      {
+        title: "Create worker",
+        description: "Create a new worker (assign a Worker Profile to a Project). IMPORTANT: All required information must be collected from the user - do not assume or provide default values.",
+        inputSchema: z
+          .object({
+            projectId: z.string().uuid("Project UUID required"),
+            employerId: z.string().uuid("Employer UUID required"), 
+            workerProfileId: z.string().uuid("Worker Profile UUID required"),
+            inductionChecklistSignatureFileId: z.string().uuid().optional(),
+          })
+          .strict(),
+      },
+      withApi(async (args) => {
+        // Validate that required fields are provided
+        if (!args.projectId || !args.employerId || !args.workerProfileId) {
+          return textError('Error: All required fields must be provided (projectId, employerId, workerProfileId). Please ask the user for this information.');
+        }
+        return json(await this.apiClient.createWorker(args));
+      })
+    );
+
     /* ---------------- Worker Profiles ---------------- */
     this.server.registerTool(
       "list_worker_profiles",
@@ -365,18 +388,33 @@ export class HammerTechMCPServer {
       "create_worker_profile",
       {
         title: "Create worker profile",
-        description: "Create a new worker profile",
+        description: "Create a new worker profile (unique individual/person within the company). IMPORTANT: All required information must be collected from the user - do not assume or provide default values.",
         inputSchema: z
           .object({
-            firstName: z.string(),
-            lastName: z.string(),
-            dateOfBirth: z.string(),
-            preferredCommunicationLanguage: z.string(),
+            firstName: z.string().min(1, "First name is required"),
+            lastName: z.string().min(1, "Last name is required"),
+            dateOfBirth: z.string().describe("Actual date of birth in extended ISO 8601 format (YYYY-MM-DDThh:mm:ss), e.g. 1970-01-01T00:00:00 - MUST be the real birthdate, never use placeholder dates"),
+            jobTitle: z.string().min(1, "Job title is required"),
+            preferredCommunicationLanguage: z.string().min(1, "Preferred communication language is required"),
             email: z.string().email().optional(),
           })
           .strict(),
       },
-      withApi(async (args) => json(await this.apiClient.createWorkerProfile(args)))
+      withApi(async (args) => {
+        // Validate that required fields are provided and not placeholder values
+        if (!args.firstName || !args.lastName || !args.dateOfBirth || !args.jobTitle || !args.preferredCommunicationLanguage) {
+          return textError('Error: All required fields must be provided (firstName, lastName, dateOfBirth, jobTitle, preferredCommunicationLanguage). Please ask the user for this information.');
+        }
+        
+        // Check for common placeholder dates that should not be used
+        const placeholderDates = ['1990-01-01', '2000-01-01', '1980-01-01', '1970-01-01'];
+        const dateOnly = args.dateOfBirth.split('T')[0];
+        if (placeholderDates.includes(dateOnly)) {
+          return textError(`Error: The date ${dateOnly} appears to be a placeholder. Please ask the user for their actual date of birth.`);
+        }
+        
+        return json(await this.apiClient.createWorkerProfile(args));
+      })
     );
 
     this.server.registerTool(
@@ -581,7 +619,7 @@ export class HammerTechMCPServer {
       "create_iot_event_with_image",
       {
         title: "Create IoT event (with image)",
-        description: "Create a new IoT event and attach an uploaded image from the conversation.",
+        description: "Create a new IoT event and attach an uploaded image from the conversation. CRITICAL: Do NOT fabricate or create fake base64 image data. Only use actual image data from uploaded files.",
         inputSchema: z
           .object({
             projectId: z.string(),
@@ -609,6 +647,40 @@ export class HammerTechMCPServer {
             `Error: Image file type not supported for \"${args.imageFileName}\". Allowed: PNG, JPEG`
           );
         }
+
+        // Aggressive validation to detect fake/placeholder base64 image data
+        const base64Data = args.imageBase64;
+        
+        // Check minimum size (real images are typically much larger)
+        if (base64Data.length < 100) {
+          return textError('Error: Image data appears to be invalid or too small. Please provide actual image data from an uploaded file.');
+        }
+        
+        // Check for common fake/placeholder patterns
+        const suspiciousPatterns = [
+          /^iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==$/, // 1x1 transparent PNG
+          /^iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFElEQVR42mNkYPhfz0AEYBxVSF+FAP\/\/Y\/+RkMOnAAAAAElFTkSuQmCC$/, // 10x10 checkerboard
+          /^\/9j\/4AAQSkZJRgABAQEAYABgAAD$/, // Minimal JPEG header
+          /^UklGRiQAAABXRUJQVlA4$/, // WebP header
+        ];
+        
+        for (const pattern of suspiciousPatterns) {
+          if (pattern.test(base64Data)) {
+            return textError('Error: The provided image data appears to be a placeholder or fake image. Please provide actual image data from an uploaded file, not fabricated data.');
+          }
+        }
+        
+        // Check for obviously fake text patterns in the base64
+        const textPatterns = [
+          /test/i, /fake/i, /placeholder/i, /dummy/i, /sample/i, /example/i
+        ];
+        
+        for (const pattern of textPatterns) {
+          if (pattern.test(base64Data)) {
+            return textError('Error: The provided image data contains suspicious text patterns suggesting it is not real image data. Please provide actual image data from an uploaded file.');
+          }
+        }
+
         const attachment = {
           fileName: args.imageFileName,
           base64FileContent: args.imageBase64,

@@ -78,16 +78,23 @@ export interface IoTEventDescriptor {
     vendorId?: string;
     deviceId?: string;
 }
+export interface CreateWorkerRequest {
+    projectId: string;
+    employerId: string;
+    workerProfileId: string;
+    inductionChecklistSignatureFileId?: string;
+}
 export interface CreateWorkerProfileRequest {
     firstName: string;
     lastName: string;
     dateOfBirth: string;
+    jobTitle: string;
     preferredCommunicationLanguage: string;
     email?: string;
     customFieldValues?: any[];
 }
 export interface CreateEmployerRequest {
-    name: string;
+    businessName: string;
     description?: string;
     customFieldValues?: any[];
 }

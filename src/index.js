@@ -9,8 +9,8 @@ import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mc
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-import { HammerTechApiClient } from "./api-client.js";
-import { ConfigSchema } from "./types.js";
+import { HammerTechApiClient } from "../dist/api-client.js";
+import { ConfigSchema } from "../dist/types.js";
 
 export class HammerTechMCPServer {
   server;

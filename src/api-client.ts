@@ -10,6 +10,7 @@ import {
   EmployerProfileDescriptor,
   IoTVendorDescriptor,
   IoTEventDescriptor,
+  CreateWorkerRequest,
   CreateWorkerProfileRequest,
   CreateEmployerRequest,
   CreateIoTEventRequest,
@@ -60,8 +61,19 @@ export class HammerTechApiClient {
         status: response.status
       };
     } catch (error: any) {
+      // Handle different error response formats:
+      // 400: { isSuccess, httpStatusCode, messageText, ... }
+      // 500: { Code, Message }
+      // 401: empty body
+      const errorMessage = 
+        error.response?.data?.messageText ||  // 400 validation errors
+        error.response?.data?.Message ||      // 500 internal errors  
+        error.response?.data?.message ||      // fallback for other formats
+        error.message ||                      // network/axios errors
+        'Unknown error';
+        
       return {
-        error: error.response?.data?.message || error.message || 'Unknown error',
+        error: errorMessage,
         status: error.response?.status || 500
       };
     }
@@ -83,6 +95,10 @@ export class HammerTechApiClient {
 
   async getWorker(id: string): Promise<HammerTechApiResponse<WorkerDescriptor>> {
     return this.makeRequest<WorkerDescriptor>('GET', `/api/v1/Workers/${id}`);
+  }
+
+  async createWorker(workerData: CreateWorkerRequest): Promise<HammerTechApiResponse<any>> {
+    return this.makeRequest<any>('POST', '/api/v1/Workers', workerData);
   }
 
   // Worker Profiles
@@ -157,5 +173,10 @@ export class HammerTechApiClient {
 
   async createIoTEvent(data: CreateIoTEventRequest): Promise<HammerTechApiResponse<IoTEventDescriptor>> {
     return this.makeRequest<IoTEventDescriptor>('POST', '/api/v1/IoTEvents', data);
+  }
+
+  // Job Titles
+  async listJobTitles(params?: ListParams): Promise<HammerTechApiResponse<any[]>> {
+    return this.makeRequest<any[]>('GET', '/api/v1/JobTitles', undefined, params);
   }
 }

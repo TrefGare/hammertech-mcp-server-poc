@@ -1,4 +1,4 @@
-import { Config, HammerTechApiResponse, ListParams, ProjectDescriptor, WorkerDescriptor, WorkerProfileDescriptor, EmployerDescriptor, EmployerProfileDescriptor, IoTVendorDescriptor, IoTEventDescriptor, CreateWorkerProfileRequest, CreateEmployerRequest, CreateIoTEventRequest } from './types.js';
+import { Config, HammerTechApiResponse, ListParams, ProjectDescriptor, WorkerDescriptor, WorkerProfileDescriptor, EmployerDescriptor, EmployerProfileDescriptor, IoTVendorDescriptor, IoTEventDescriptor, CreateWorkerRequest, CreateWorkerProfileRequest, CreateEmployerRequest, CreateIoTEventRequest } from './types.js';
 export declare class HammerTechApiClient {
     private config;
     private client;
@@ -9,6 +9,7 @@ export declare class HammerTechApiClient {
     getProject(id: string): Promise<HammerTechApiResponse<ProjectDescriptor>>;
     listWorkers(params?: ListParams): Promise<HammerTechApiResponse<WorkerDescriptor[]>>;
     getWorker(id: string): Promise<HammerTechApiResponse<WorkerDescriptor>>;
+    createWorker(workerData: CreateWorkerRequest): Promise<HammerTechApiResponse<any>>;
     listWorkerProfiles(params?: ListParams): Promise<HammerTechApiResponse<WorkerProfileDescriptor[]>>;
     getWorkerProfile(id: string, includeConfidentialData?: boolean): Promise<HammerTechApiResponse<WorkerProfileDescriptor>>;
     createWorkerProfile(data: CreateWorkerProfileRequest): Promise<HammerTechApiResponse<WorkerProfileDescriptor>>;
@@ -26,5 +27,6 @@ export declare class HammerTechApiClient {
     listIoTEvents(params?: ListParams): Promise<HammerTechApiResponse<IoTEventDescriptor[]>>;
     getIoTEvent(id: string): Promise<HammerTechApiResponse<IoTEventDescriptor>>;
     createIoTEvent(data: CreateIoTEventRequest): Promise<HammerTechApiResponse<IoTEventDescriptor>>;
+    listJobTitles(params?: ListParams): Promise<HammerTechApiResponse<any[]>>;
 }
 //# sourceMappingURL=api-client.d.ts.map

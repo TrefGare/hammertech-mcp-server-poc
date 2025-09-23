@@ -57,6 +57,9 @@ export class HammerTechApiClient {
     async getWorker(id) {
         return this.makeRequest('GET', `/api/v1/Workers/${id}`);
     }
+    async createWorker(workerData) {
+        return this.makeRequest('POST', '/api/v1/Workers', workerData);
+    }
     // Worker Profiles
     async listWorkerProfiles(params) {
         return this.makeRequest('GET', '/api/v1/WorkerProfiles', undefined, params);
@@ -113,6 +116,10 @@ export class HammerTechApiClient {
     }
     async createIoTEvent(data) {
         return this.makeRequest('POST', '/api/v1/IoTEvents', data);
+    }
+    // Job Titles
+    async listJobTitles(params) {
+        return this.makeRequest('GET', '/api/v1/JobTitles', undefined, params);
     }
 }
 //# sourceMappingURL=api-client.js.map
