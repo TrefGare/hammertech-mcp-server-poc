@@ -571,6 +571,32 @@ export class HammerTechMCPServer {
         };
     }
     async handleCreateIoTEventWithImage(args) {
+        // Validate required parameters
+        if (!args.projectId) {
+            return {
+                content: [{ type: 'text', text: 'Error: projectId is required' }]
+            };
+        }
+        if (!args.iotVendorId) {
+            return {
+                content: [{ type: 'text', text: 'Error: iotVendorId is required' }]
+            };
+        }
+        if (!args.iotEventTypeId) {
+            return {
+                content: [{ type: 'text', text: 'Error: iotEventTypeId is required' }]
+            };
+        }
+        if (!args.imageBase64) {
+            return {
+                content: [{ type: 'text', text: 'Error: imageBase64 is required' }]
+            };
+        }
+        if (!args.imageFileName) {
+            return {
+                content: [{ type: 'text', text: 'Error: imageFileName is required' }]
+            };
+        }
         // Set current date/time if eventDate is not provided
         if (!args.eventDate) {
             args.eventDate = new Date().toISOString();
