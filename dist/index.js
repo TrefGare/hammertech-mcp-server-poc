@@ -1,666 +1,533 @@
 #!/usr/bin/env node
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema, } from '@modelcontextprotocol/sdk/types.js';
-import { HammerTechApiClient } from './api-client.js';
-import { ConfigSchema } from './types.js';
+// Enhanced MCP server with McpServer architecture, Zod validation, Help Center integration, and improved error handling
+import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
+import { HammerTechApiClient } from "./api-client.js";
+import { ConfigSchema } from "./types.js";
 export class HammerTechMCPServer {
     server;
     apiClient = null;
     constructor() {
-        this.server = new Server({
-            name: 'hammertech-api-server',
-            version: '1.0.0',
-        }, {
-            capabilities: {
-                tools: {},
-            },
-        });
-        this.setupToolHandlers();
+        this.server = new McpServer({ name: "hammertech-api-server", version: "1.0.0" });
+        this.registerResources();
+        this.registerPrompts();
+        this.registerTools();
     }
-    setupToolHandlers() {
-        this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-            return {
-                tools: this.getAvailableTools(),
-            };
+    /** --------------------- RESOURCES --------------------- */
+    registerResources() {
+        // Help Center: article as resource (by id or slug)
+        this.server.registerResource("ht-help-article", new ResourceTemplate("hammertech://help/article/{idOrSlug}"), {
+            title: "Help Center Article",
+            description: "Expose a HammerTech Help Center article as a markdown resource.",
+            mimeType: "text/markdown",
+        }, async (uri, { idOrSlug, locale = "en-us" }) => {
+            const art = await this.fetchHelpArticle(idOrSlug, locale);
+            if (!art || (!art.markdown && !art.html)) {
+                return {
+                    contents: [
+                        { uri: uri.href, text: `# Help article not available\nSource: ${art?.url ?? idOrSlug}` },
+                    ],
+                };
+            }
+            return { contents: [{ uri: art.url, text: art.markdown ?? art.html }] };
         });
-        this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-            const { name, arguments: args } = request.params;
+        // Help Center: search as resource (returns a markdown list)
+        this.server.registerResource("ht-help-search", new ResourceTemplate("hammertech://help/search/{q}"), {
+            title: "Help Center Search",
+            description: "Search help.hammertech.com and return top matches as links.",
+            mimeType: "text/markdown",
+        }, async (uri, { q, locale = "en-us", limit = 5 }) => {
+            const res = await this.searchHelp(q, locale, limit);
+            const lines = [
+                `# Help search: "${q}"`,
+                `Source: ${res.url}`,
+                "",
+                ...(res.items.length
+                    ? res.items.map((i, idx) => `${idx + 1}. [${i.title}](${i.url}) — ${i.idOrSlug}`)
+                    : ["_No results_"]),
+            ];
+            return { contents: [{ uri: uri.href, text: lines.join("\n") }] };
+        });
+    }
+    /** --------------------- PROMPTS --------------------- */
+    registerPrompts() {
+        // Extra prompts for guided flows
+        this.server.registerPrompt("create_worker_profile_flow", {
+            title: "Create Worker Profile (guided)",
+            description: "Collect required fields, confirm, then create.",
+            argsSchema: {},
+        }, () => ({
+            messages: [
+                {
+                    role: "system",
+                    content: {
+                        type: "text",
+                        text: `When asked to create a worker profile:
+1) Verify required fields: firstName, lastName, dateOfBirth (ISO), preferredCommunicationLanguage; email optional.
+2) Repeat back the values and ask for confirmation.
+3) On explicit confirm, call create_worker_profile with those fields.
+4) Do not include confidential extras unless requested.`,
+                    },
+                },
+            ],
+        }));
+        this.server.registerPrompt("iot_event_from_image", {
+            title: "Log IoT Event from an image",
+            description: "Turn an uploaded image into an IoT event with metadata.",
+            argsSchema: {},
+        }, () => ({
+            messages: [
+                {
+                    role: "system",
+                    content: {
+                        type: "text",
+                        text: `If the user uploaded an image and wants to log an IoT event:
+- Ask for: projectId, iotVendorId, iotEventTypeId, optional description/locationId.
+- Use create_iot_event_with_image with image base64 and filename.
+- Validate extension is PNG or JPEG.
+- Summarize what was logged.`,
+                    },
+                },
+            ],
+        }));
+    }
+    /** --------------------- TOOLS --------------------- */
+    registerTools() {
+        // Helper to keep handlers concise
+        const json = (obj) => ({ content: [{ type: "json", json: obj }] });
+        const textError = (msg) => ({ content: [{ type: "text", text: msg }], isError: true });
+        // Ensure API client is initialized before any call
+        const withApi = (fn) => async (args) => {
             if (!this.apiClient) {
-                throw new Error('HammerTech API client not configured. Please set HAMMERTECH_JWT_TOKEN and HAMMERTECH_REGION environment variables.');
+                throw new Error("HammerTech API client not configured. Set HAMMERTECH_JWT_TOKEN and HAMMERTECH_REGION.");
             }
-            try {
-                switch (name) {
-                    // Projects
-                    case 'list_projects':
-                        return await this.handleListProjects(args);
-                    case 'get_project':
-                        return await this.handleGetProject(args);
-                    // Workers
-                    case 'list_workers':
-                        return await this.handleListWorkers(args);
-                    case 'get_worker':
-                        return await this.handleGetWorker(args);
-                    // Worker Profiles
-                    case 'list_worker_profiles':
-                        return await this.handleListWorkerProfiles(args);
-                    case 'get_worker_profile':
-                        return await this.handleGetWorkerProfile(args);
-                    case 'create_worker_profile':
-                        return await this.handleCreateWorkerProfile(args);
-                    case 'update_worker_profile':
-                        return await this.handleUpdateWorkerProfile(args);
-                    // Employers
-                    case 'list_employers':
-                        return await this.handleListEmployers(args);
-                    case 'get_employer':
-                        return await this.handleGetEmployer(args);
-                    case 'create_employer':
-                        return await this.handleCreateEmployer(args);
-                    // Employer Profiles
-                    case 'list_employer_profiles':
-                        return await this.handleListEmployerProfiles(args);
-                    case 'get_employer_profile':
-                        return await this.handleGetEmployerProfile(args);
-                    case 'create_employer_profile':
-                        return await this.handleCreateEmployerProfile(args);
-                    case 'update_employer_profile':
-                        return await this.handleUpdateEmployerProfile(args);
-                    // IoT Vendors
-                    case 'list_iot_vendors':
-                        return await this.handleListIoTVendors(args);
-                    case 'get_iot_vendor':
-                        return await this.handleGetIoTVendor(args);
-                    case 'create_iot_vendor':
-                        return await this.handleCreateIoTVendor(args);
-                    // IoT Events
-                    case 'list_iot_events':
-                        return await this.handleListIoTEvents(args);
-                    case 'get_iot_event':
-                        return await this.handleGetIoTEvent(args);
-                    case 'create_iot_event':
-                        return await this.handleCreateIoTEvent(args);
-                    case 'create_iot_event_with_image':
-                        return await this.handleCreateIoTEventWithImage(args);
-                    default:
-                        throw new Error(`Unknown tool: ${name}`);
-                }
-            }
-            catch (error) {
+            return fn(args);
+        };
+        // Connectivity / sanity check tool
+        this.server.registerTool("status.ping", {
+            title: "Ping",
+            description: "Check server/version and token/region presence.",
+            inputSchema: z.object({}).strict(),
+        }, async () => ({
+            content: [
+                {
+                    type: "json",
+                    json: {
+                        ok: true,
+                        server: "hammertech-api-server",
+                        version: "1.0.0",
+                        region: process.env.HAMMERTECH_REGION || "us",
+                        authConfigured: !!process.env.HAMMERTECH_JWT_TOKEN,
+                    },
+                },
+            ],
+        }));
+        /* ---------------- Help Center tools ---------------- */
+        this.server.registerTool("help.search", {
+            title: "Search Help Center",
+            description: "Search https://help.hammertech.com for articles.",
+            inputSchema: z
+                .object({
+                q: z.string(),
+                locale: z.string().optional(),
+                limit: z.number().int().min(1).max(10).optional(),
+            })
+                .strict(),
+        }, async ({ q, locale = "en-us", limit = 5 }) => {
+            const result = await this.searchHelp(q, locale, limit);
+            return { content: [{ type: "json", json: result }] };
+        });
+        this.server.registerTool("help.get", {
+            title: "Get Help Center article",
+            description: "Fetch a specific Help Center article by id or slug.",
+            inputSchema: z
+                .object({
+                idOrSlug: z.string(),
+                locale: z.string().optional(),
+                format: z.enum(["markdown", "html"]).optional(),
+            })
+                .strict(),
+        }, async ({ idOrSlug, locale = "en-us", format = "markdown" }) => {
+            const art = await this.fetchHelpArticle(idOrSlug, locale);
+            if (!art || (!art.markdown && !art.html)) {
                 return {
                     content: [
-                        {
-                            type: 'text',
-                            text: `Error: ${error instanceof Error ? error.message : String(error)}`,
-                        },
+                        { type: "text", text: `Article not available. Tried: ${idOrSlug}` },
                     ],
                     isError: true,
                 };
             }
+            const body = format === "html" ? art.html || art.markdown : art.markdown || art.html;
+            const out = {
+                title: art.title || String(idOrSlug),
+                url: art.url,
+                format,
+                body,
+            };
+            return { content: [{ type: "json", json: out }] };
         });
-    }
-    getAvailableTools() {
-        return [
-            // Projects
-            {
-                name: 'list_projects',
-                description: 'List construction projects with optional filtering and pagination',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        skip: { type: 'number', description: 'Number of records to skip for pagination' },
-                        take: { type: 'number', description: 'Number of records to take (max 100)' },
-                        sortBy: { type: 'string', description: 'Sort order (id, iddesc, descr)' },
-                        modifiedSince: { type: 'string', description: 'ISO datetime to filter modified records' },
-                        projectId: { type: 'string', description: 'Filter by project ID' },
-                    },
-                },
-            },
-            {
-                name: 'get_project',
-                description: 'Retrieve a specific construction project by ID',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        id: { type: 'string', description: 'Project ID', },
-                    },
-                    required: ['id'],
-                },
-            },
-            // Workers
-            {
-                name: 'list_workers',
-                description: 'List workers (per-project records linking Worker Profiles to specific Projects) with optional filtering and pagination',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        skip: { type: 'number' },
-                        take: { type: 'number' },
-                        sortBy: { type: 'string' },
-                        modifiedSince: { type: 'string' },
-                        projectId: { type: 'string' },
-                    },
-                },
-            },
-            {
-                name: 'get_worker',
-                description: 'Retrieve a specific worker by ID (per-project record connecting a Worker Profile to a Project)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        id: { type: 'string', description: 'Worker ID' },
-                    },
-                    required: ['id'],
-                },
-            },
-            // Worker Profiles
-            {
-                name: 'list_worker_profiles',
-                description: 'List worker profiles (unique individuals/people within the company) with optional filtering and pagination',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        skip: { type: 'number' },
-                        take: { type: 'number' },
-                        sortBy: { type: 'string' },
-                        modifiedSince: { type: 'string' },
-                        projectId: { type: 'string' },
-                    },
-                },
-            },
-            {
-                name: 'get_worker_profile',
-                description: 'Retrieve a specific worker profile by ID (unique individual/person within the company)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        id: { type: 'string', description: 'Worker Profile ID' },
-                        includeConfidentialData: { type: 'boolean', description: 'Include confidential data in response' },
-                    },
-                    required: ['id'],
-                },
-            },
-            {
-                name: 'create_worker_profile',
-                description: 'Create a new worker profile (unique individual/person within the company)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        firstName: { type: 'string', description: 'Worker first name' },
-                        lastName: { type: 'string', description: 'Worker last name' },
-                        dateOfBirth: { type: 'string', description: 'Date of birth in extended ISO 8601 format (YYYY-MM-DDThh:mm:ss), e.g. 1970-01-01T00:00:00' },
-                        preferredCommunicationLanguage: { type: 'string', description: 'BCP 47 language tag' },
-                        email: { type: 'string', description: 'Email address' },
-                    },
-                    required: ['firstName', 'lastName', 'dateOfBirth', 'preferredCommunicationLanguage'],
-                },
-            },
-            {
-                name: 'update_worker_profile',
-                description: 'Update an existing worker profile (unique individual/person within the company)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        id: { type: 'string', description: 'Worker Profile ID' },
-                        firstName: { type: 'string' },
-                        lastName: { type: 'string' },
-                        dateOfBirth: { type: 'string', description: 'Date of birth in extended ISO 8601 format (YYYY-MM-DDThh:mm:ss), e.g. 1970-01-01T00:00:00' },
-                        preferredCommunicationLanguage: { type: 'string' },
-                        email: { type: 'string' },
-                    },
-                    required: ['id'],
-                },
-            },
-            // Employers
-            {
-                name: 'list_employers',
-                description: 'List employers (companies/organizations associated with specific projects) with optional filtering and pagination',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        skip: { type: 'number' },
-                        take: { type: 'number' },
-                        sortBy: { type: 'string' },
-                        modifiedSince: { type: 'string' },
-                        projectId: { type: 'string' },
-                    },
-                },
-            },
-            {
-                name: 'get_employer',
-                description: 'Retrieve a specific employer by ID (company/organization associated with a project)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        id: { type: 'string', description: 'Employer ID' },
-                    },
-                    required: ['id'],
-                },
-            },
-            {
-                name: 'create_employer',
-                description: 'Create a new employer (associate a company/organization with a project)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        name: { type: 'string', description: 'Employer name' },
-                        description: { type: 'string', description: 'Employer description' },
-                    },
-                    required: ['name'],
-                },
-            },
-            // Employer Profiles
-            {
-                name: 'list_employer_profiles',
-                description: 'List employer profiles (master records for companies/organizations) with optional filtering and pagination',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        skip: { type: 'number' },
-                        take: { type: 'number' },
-                        sortBy: { type: 'string' },
-                        modifiedSince: { type: 'string' },
-                        projectId: { type: 'string' },
-                    },
-                },
-            },
-            {
-                name: 'get_employer_profile',
-                description: 'Retrieve a specific employer profile by ID (master company/organization record)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        id: { type: 'string', description: 'Employer Profile ID' },
-                    },
-                    required: ['id'],
-                },
-            },
-            {
-                name: 'create_employer_profile',
-                description: 'Create a new employer profile (master company/organization record)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        name: { type: 'string', description: 'Profile name' },
-                        description: { type: 'string', description: 'Profile description' },
-                        employerId: { type: 'string', description: 'Associated employer ID' },
-                    },
-                    required: ['name'],
-                },
-            },
-            {
-                name: 'update_employer_profile',
-                description: 'Update an existing employer profile (master company/organization record)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        id: { type: 'string', description: 'Employer Profile ID' },
-                        name: { type: 'string' },
-                        description: { type: 'string' },
-                        employerId: { type: 'string' },
-                    },
-                    required: ['id'],
-                },
-            },
-            // IoT Vendors
-            {
-                name: 'list_iot_vendors',
-                description: 'List IoT vendors (manufacturers/providers of IoT devices) with optional filtering and pagination',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        skip: { type: 'number' },
-                        take: { type: 'number' },
-                        sortBy: { type: 'string' },
-                        modifiedSince: { type: 'string' },
-                        projectId: { type: 'string' },
-                    },
-                },
-            },
-            {
-                name: 'get_iot_vendor',
-                description: 'Retrieve a specific IoT vendor by ID (manufacturer/provider of IoT devices)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        id: { type: 'string', description: 'IoT Vendor ID' },
-                    },
-                    required: ['id'],
-                },
-            },
-            {
-                name: 'create_iot_vendor',
-                description: 'Create a new IoT vendor (manufacturer/provider of IoT devices)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        name: { type: 'string', description: 'Vendor name' },
-                        description: { type: 'string', description: 'Vendor description' },
-                    },
-                    required: ['name'],
-                },
-            },
-            // IoT Events
-            {
-                name: 'list_iot_events',
-                description: 'List IoT events with optional filtering and pagination',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        skip: { type: 'number' },
-                        take: { type: 'number' },
-                        sortBy: { type: 'string' },
-                        modifiedSince: { type: 'string' },
-                        projectId: { type: 'string' },
-                    },
-                },
-            },
-            {
-                name: 'get_iot_event',
-                description: 'Retrieve a specific IoT event by ID',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        id: { type: 'string', description: 'IoT Event ID' },
-                    },
-                    required: ['id'],
-                },
-            },
-            {
-                name: 'create_iot_event',
-                description: 'Create a new IoT event record capturing data points from connected IoT devices with associated metadata, optional structured content, and file attachments',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        projectId: { type: 'string', description: 'Project UUID associated with the IoT Event', format: 'uuid' },
-                        eventDate: { type: 'string', description: 'Event date/time in ISO 8601 format (YYYY-MM-DDThh:mm:ss), e.g. 2024-01-15T14:30:00. If not provided, current date/time will be used.', format: 'date-time' },
-                        iotVendorId: { type: 'string', description: 'IoT Vendor UUID', format: 'uuid' },
-                        iotEventTypeId: { type: 'string', description: 'IoT Event Type UUID', format: 'uuid' },
-                        locationId: { type: 'string', description: 'Location Hierarchy UUID (optional)', format: 'uuid' },
-                        description: { type: 'string', description: 'Text description of the event (optional)' },
-                        contentType: { type: 'string', description: 'Content type: application/json, application/xml, or text/plain (optional)' },
-                        content: { type: 'string', description: 'Content text of the event (optional)' },
-                        attachments: {
-                            type: 'array',
-                            description: 'File attachments as base64-encoded content (optional). Supported file types: PNG, JPEG, PDF, DOC, DOCX, XLS, XLSX',
-                            items: {
-                                type: 'object',
-                                properties: {
-                                    fileName: { type: 'string', description: 'Original filename (must have extension: .png, .jpg, .jpeg, .pdf, .doc, .docx, .xls, .xlsx)' },
-                                    base64FileContent: { type: 'string', description: 'File content encoded as base64 string' },
-                                    annotation: { type: 'string', description: 'File annotation/notes (optional)' }
-                                },
-                                required: ['fileName', 'base64FileContent']
-                            }
-                        }
-                    },
-                    required: ['projectId', 'iotVendorId', 'iotEventTypeId'],
-                },
-            },
-            {
-                name: 'create_iot_event_with_image',
-                description: 'Create a new IoT event record with an uploaded image attachment. Use when an image has been uploaded in the conversation.',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        projectId: { type: 'string', description: 'Project UUID associated with the IoT Event', format: 'uuid' },
-                        eventDate: { type: 'string', description: 'Event date/time in ISO 8601 format (YYYY-MM-DDThh:mm:ss), e.g. 2024-01-15T14:30:00. If not provided, current date/time will be used.', format: 'date-time' },
-                        iotVendorId: { type: 'string', description: 'IoT Vendor UUID', format: 'uuid' },
-                        iotEventTypeId: { type: 'string', description: 'IoT Event Type UUID', format: 'uuid' },
-                        locationId: { type: 'string', description: 'Location Hierarchy UUID (optional)', format: 'uuid' },
-                        description: { type: 'string', description: 'Text description of the event (optional)' },
-                        contentType: { type: 'string', description: 'Content type: application/json, application/xml, or text/plain (optional)' },
-                        content: { type: 'string', description: 'Content text of the event (optional)' },
-                        imageBase64: { type: 'string', description: 'Base64-encoded image data from uploaded conversation image' },
-                        imageFileName: { type: 'string', description: 'Filename for the image (e.g., "security_camera.jpg", "incident_photo.png")' },
-                        imageAnnotation: { type: 'string', description: 'Optional annotation/description for the image attachment' }
-                    },
-                    required: ['projectId', 'iotVendorId', 'iotEventTypeId', 'imageBase64', 'imageFileName'],
-                },
-            },
-        ];
-    }
-    // Tool handlers
-    async handleListProjects(args) {
-        const result = await this.apiClient.listProjects(args);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleGetProject(args) {
-        const result = await this.apiClient.getProject(args.id);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleListWorkers(args) {
-        const result = await this.apiClient.listWorkers(args);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleGetWorker(args) {
-        const result = await this.apiClient.getWorker(args.id);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleListWorkerProfiles(args) {
-        const result = await this.apiClient.listWorkerProfiles(args);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleGetWorkerProfile(args) {
-        const result = await this.apiClient.getWorkerProfile(args.id, args.includeConfidentialData);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleCreateWorkerProfile(args) {
-        const result = await this.apiClient.createWorkerProfile(args);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleUpdateWorkerProfile(args) {
-        const { id, ...updateData } = args;
-        const result = await this.apiClient.updateWorkerProfile(id, updateData);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleListEmployers(args) {
-        const result = await this.apiClient.listEmployers(args);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleGetEmployer(args) {
-        const result = await this.apiClient.getEmployer(args.id);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleCreateEmployer(args) {
-        const result = await this.apiClient.createEmployer(args);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleListEmployerProfiles(args) {
-        const result = await this.apiClient.listEmployerProfiles(args);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleGetEmployerProfile(args) {
-        const result = await this.apiClient.getEmployerProfile(args.id);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleCreateEmployerProfile(args) {
-        const result = await this.apiClient.createEmployerProfile(args);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleUpdateEmployerProfile(args) {
-        const { id, ...updateData } = args;
-        const result = await this.apiClient.updateEmployerProfile(id, updateData);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleListIoTVendors(args) {
-        const result = await this.apiClient.listIoTVendors(args);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleGetIoTVendor(args) {
-        const result = await this.apiClient.getIoTVendor(args.id);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleCreateIoTVendor(args) {
-        const result = await this.apiClient.createIoTVendor(args);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleListIoTEvents(args) {
-        const result = await this.apiClient.listIoTEvents(args);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleGetIoTEvent(args) {
-        const result = await this.apiClient.getIoTEvent(args.id);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
-    }
-    async handleCreateIoTEvent(args) {
-        // Set current date/time if eventDate is not provided
-        if (!args.eventDate) {
-            args.eventDate = new Date().toISOString();
-        }
-        // Validate file types for attachments
-        if (args.attachments && Array.isArray(args.attachments)) {
-            const allowedExtensions = ['.png', '.jpg', '.jpeg', '.pdf', '.doc', '.docx', '.xls', '.xlsx'];
-            for (const attachment of args.attachments) {
-                if (attachment.fileName) {
-                    const fileExtension = attachment.fileName.toLowerCase().substring(attachment.fileName.lastIndexOf('.'));
-                    if (!allowedExtensions.includes(fileExtension)) {
-                        return {
-                            content: [{
-                                    type: 'text',
-                                    text: `Error: File type not supported. File "${attachment.fileName}" has extension "${fileExtension}". Allowed types: PNG, JPEG, PDF, DOC, DOCX, XLS, XLSX`
-                                }],
-                        };
+        this.server.registerTool("help.summarize", {
+            title: "Summarize Help Center article",
+            description: "Fetch an article and return a concise summary plus key steps.",
+            inputSchema: z
+                .object({
+                idOrSlug: z.string(),
+                locale: z.string().optional(),
+                maxBullets: z.number().int().min(1).max(8).optional(),
+            })
+                .strict(),
+        }, async ({ idOrSlug, locale = "en-us", maxBullets = 5 }) => {
+            const art = await this.fetchHelpArticle(idOrSlug, locale);
+            if (!art || (!art.markdown && !art.html)) {
+                return {
+                    content: [
+                        { type: "text", text: `Article not available. Tried: ${idOrSlug}` },
+                    ],
+                    isError: true,
+                };
+            }
+            const md = art.markdown || `# ${art.title}\n\n`;
+            const lines = md.split(/\r?\n/);
+            const title = (art.title || (lines[0] || "").replace(/^#\s*/, "")).trim();
+            // Collect candidate bullet/step lines
+            const bullets = [];
+            for (const ln of lines) {
+                const t = ln.trim();
+                if (/^[-*•]\s+/.test(t))
+                    bullets.push(t.replace(/^[-*•]\s+/, ""));
+                else if (/^\d+[\.)]\s+/.test(t))
+                    bullets.push(t.replace(/^\d+[\.)]\s+/, ""));
+                if (bullets.length >= maxBullets)
+                    break;
+            }
+            // Fallback summary from first sentences
+            let summary = "";
+            if (bullets.length === 0) {
+                const paragraph = lines.join(" ").replace(/\s+/g, " ").trim();
+                const sentences = paragraph.split(/(?<=[.!?])\s+/).slice(0, 3);
+                summary = sentences.join(" ");
+            }
+            else {
+                summary = bullets
+                    .slice(0, Math.min(maxBullets, bullets.length))
+                    .join(" • ");
+            }
+            const out = {
+                title,
+                url: art.url,
+                summary,
+                steps: bullets.slice(0, Math.min(maxBullets, bullets.length)),
+            };
+            return { content: [{ type: "json", json: out }] };
+        });
+        /* ---------------- Projects ---------------- */
+        this.server.registerTool("list_projects", {
+            title: "List projects",
+            description: "List construction projects with optional filtering and pagination",
+            inputSchema: z
+                .object({
+                skip: z.number().optional(),
+                take: z.number().max(100).optional(),
+                sortBy: z.string().optional(),
+                modifiedSince: z.string().optional(),
+                projectId: z.string().optional(),
+            })
+                .strict(),
+        }, withApi(async (args) => json(await this.apiClient.listProjects(args))));
+        this.server.registerTool("get_project", {
+            title: "Get project",
+            description: "Retrieve a specific construction project by ID",
+            inputSchema: z.object({ id: z.string() }).strict(),
+        }, withApi(async ({ id }) => json(await this.apiClient.getProject(id))));
+        /* ---------------- Workers ---------------- */
+        const listFilter = z
+            .object({
+            skip: z.number().optional(),
+            take: z.number().optional(),
+            sortBy: z.string().optional(),
+            modifiedSince: z.string().optional(),
+            projectId: z.string().optional(),
+        })
+            .strict();
+        this.server.registerTool("list_workers", {
+            title: "List workers",
+            description: "List workers (per-project records linking Worker Profiles to specific Projects) with optional filtering and pagination",
+            inputSchema: listFilter,
+        }, withApi(async (args) => json(await this.apiClient.listWorkers(args))));
+        this.server.registerTool("get_worker", {
+            title: "Get worker",
+            description: "Retrieve a specific worker by ID (per-project record connecting a Worker Profile to a Project)",
+            inputSchema: z.object({ id: z.string() }).strict(),
+        }, withApi(async ({ id }) => json(await this.apiClient.getWorker(id))));
+        /* ---------------- Worker Profiles ---------------- */
+        this.server.registerTool("list_worker_profiles", {
+            title: "List worker profiles",
+            description: "List worker profiles (unique individuals/people within the company) with optional filtering and pagination",
+            inputSchema: listFilter,
+        }, withApi(async (args) => json(await this.apiClient.listWorkerProfiles(args))));
+        this.server.registerTool("get_worker_profile", {
+            title: "Get worker profile",
+            description: "Retrieve a specific worker profile by ID (unique individual/person within the company)",
+            inputSchema: z
+                .object({ id: z.string(), includeConfidentialData: z.boolean().optional() })
+                .strict(),
+        }, withApi(async ({ id, includeConfidentialData }) => json(await this.apiClient.getWorkerProfile(id, includeConfidentialData))));
+        this.server.registerTool("create_worker_profile", {
+            title: "Create worker profile",
+            description: "Create a new worker profile (unique individual/person within the company)",
+            inputSchema: z
+                .object({
+                firstName: z.string(),
+                lastName: z.string(),
+                dateOfBirth: z.string().describe("Date of birth in extended ISO 8601 format (YYYY-MM-DDThh:mm:ss), e.g. 1970-01-01T00:00:00"),
+                preferredCommunicationLanguage: z.string(),
+                email: z.string().email().optional(),
+            })
+                .strict(),
+        }, withApi(async (args) => json(await this.apiClient.createWorkerProfile(args))));
+        this.server.registerTool("update_worker_profile", {
+            title: "Update worker profile",
+            description: "Update an existing worker profile (unique individual/person within the company)",
+            inputSchema: z
+                .object({
+                id: z.string(),
+                firstName: z.string().optional(),
+                lastName: z.string().optional(),
+                dateOfBirth: z.string().describe("Date of birth in extended ISO 8601 format (YYYY-MM-DDThh:mm:ss), e.g. 1970-01-01T00:00:00").optional(),
+                preferredCommunicationLanguage: z.string().optional(),
+                email: z.string().optional(),
+            })
+                .strict(),
+        }, withApi(async ({ id, ...updateData }) => json(await this.apiClient.updateWorkerProfile(id, updateData))));
+        /* ---------------- Employers ---------------- */
+        this.server.registerTool("list_employers", {
+            title: "List employers",
+            description: "List employers (companies/organizations associated with specific projects) with optional filtering and pagination",
+            inputSchema: listFilter,
+        }, withApi(async (args) => json(await this.apiClient.listEmployers(args))));
+        this.server.registerTool("get_employer", {
+            title: "Get employer",
+            description: "Retrieve a specific employer by ID (company/organization associated with a project)",
+            inputSchema: z.object({ id: z.string() }).strict(),
+        }, withApi(async ({ id }) => json(await this.apiClient.getEmployer(id))));
+        this.server.registerTool("create_employer", {
+            title: "Create employer",
+            description: "Create a new employer (associate a company/organization with a project)",
+            inputSchema: z.object({ name: z.string(), description: z.string().optional() }).strict(),
+        }, withApi(async (args) => json(await this.apiClient.createEmployer(args))));
+        /* ---------------- Employer Profiles ---------------- */
+        this.server.registerTool("list_employer_profiles", {
+            title: "List employer profiles",
+            description: "List employer profiles (master records for companies/organizations) with optional filtering and pagination",
+            inputSchema: listFilter,
+        }, withApi(async (args) => json(await this.apiClient.listEmployerProfiles(args))));
+        this.server.registerTool("get_employer_profile", {
+            title: "Get employer profile",
+            description: "Retrieve a specific employer profile by ID (master company/organization record)",
+            inputSchema: z.object({ id: z.string() }).strict(),
+        }, withApi(async ({ id }) => json(await this.apiClient.getEmployerProfile(id))));
+        this.server.registerTool("create_employer_profile", {
+            title: "Create employer profile",
+            description: "Create a new employer profile (master company/organization record)",
+            inputSchema: z
+                .object({ name: z.string(), description: z.string().optional(), employerId: z.string().optional() })
+                .strict(),
+        }, withApi(async (args) => json(await this.apiClient.createEmployerProfile(args))));
+        this.server.registerTool("update_employer_profile", {
+            title: "Update employer profile",
+            description: "Update an existing employer profile (master company/organization record)",
+            inputSchema: z
+                .object({ id: z.string(), name: z.string().optional(), description: z.string().optional(), employerId: z.string().optional() })
+                .strict(),
+        }, withApi(async ({ id, ...updateData }) => json(await this.apiClient.updateEmployerProfile(id, updateData))));
+        /* ---------------- IoT Vendors ---------------- */
+        this.server.registerTool("list_iot_vendors", {
+            title: "List IoT vendors",
+            description: "List IoT vendors (manufacturers/providers of IoT devices) with optional filtering and pagination",
+            inputSchema: listFilter,
+        }, withApi(async (args) => json(await this.apiClient.listIoTVendors(args))));
+        this.server.registerTool("get_iot_vendor", {
+            title: "Get IoT vendor",
+            description: "Retrieve a specific IoT vendor by ID (manufacturer/provider of IoT devices)",
+            inputSchema: z.object({ id: z.string() }).strict(),
+        }, withApi(async ({ id }) => json(await this.apiClient.getIoTVendor(id))));
+        this.server.registerTool("create_iot_vendor", {
+            title: "Create IoT vendor",
+            description: "Create a new IoT vendor (manufacturer/provider of IoT devices)",
+            inputSchema: z.object({ name: z.string(), description: z.string().optional() }).strict(),
+        }, withApi(async (args) => json(await this.apiClient.createIoTVendor(args))));
+        /* ---------------- IoT Events ---------------- */
+        this.server.registerTool("list_iot_events", {
+            title: "List IoT events",
+            description: "List IoT events with optional filtering and pagination",
+            inputSchema: listFilter,
+        }, withApi(async (args) => json(await this.apiClient.listIoTEvents(args))));
+        this.server.registerTool("get_iot_event", {
+            title: "Get IoT event",
+            description: "Retrieve a specific IoT event by ID",
+            inputSchema: z.object({ id: z.string() }).strict(),
+        }, withApi(async ({ id }) => json(await this.apiClient.getIoTEvent(id))));
+        this.server.registerTool("create_iot_event", {
+            title: "Create IoT event",
+            description: "Create a new IoT event record capturing data points from connected IoT devices with associated metadata, optional structured content, and file attachments",
+            inputSchema: z
+                .object({
+                projectId: z.string(),
+                eventDate: z.string().optional(),
+                iotVendorId: z.string(),
+                iotEventTypeId: z.string(),
+                locationId: z.string().optional(),
+                description: z.string().optional(),
+                contentType: z.string().optional(),
+                content: z.string().optional(),
+                attachments: z
+                    .array(z.object({
+                    fileName: z.string(),
+                    base64FileContent: z.string(),
+                    annotation: z.string().optional(),
+                }))
+                    .optional(),
+            })
+                .strict(),
+        }, withApi(async (args) => {
+            // default eventDate
+            if (!args.eventDate)
+                args.eventDate = new Date().toISOString();
+            // validate attachments
+            const allowed = [".png", ".jpg", ".jpeg", ".pdf", ".doc", ".docx", ".xls", ".xlsx"];
+            if (args.attachments) {
+                for (const a of args.attachments) {
+                    const ext = a.fileName.toLowerCase().slice(a.fileName.lastIndexOf("."));
+                    if (!allowed.includes(ext)) {
+                        return textError(`Error: File type not supported for "${a.fileName}". Allowed types: PNG, JPEG, PDF, DOC, DOCX, XLS, XLSX`);
                     }
                 }
             }
-        }
-        const result = await this.apiClient.createIoTEvent(args);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
+            return json(await this.apiClient.createIoTEvent(args));
+        }));
+        this.server.registerTool("create_iot_event_with_image", {
+            title: "Create IoT event (with image)",
+            description: "Create a new IoT event record with an uploaded image attachment. Use when an image has been uploaded in the conversation.",
+            inputSchema: z
+                .object({
+                projectId: z.string(),
+                eventDate: z.string().optional(),
+                iotVendorId: z.string(),
+                iotEventTypeId: z.string(),
+                locationId: z.string().optional(),
+                description: z.string().optional(),
+                contentType: z.string().optional(),
+                content: z.string().optional(),
+                imageBase64: z.string(),
+                imageFileName: z.string(),
+                imageAnnotation: z.string().optional(),
+            })
+                .strict(),
+        }, withApi(async (args) => {
+            if (!args.eventDate)
+                args.eventDate = new Date().toISOString();
+            const allowedImg = [".png", ".jpg", ".jpeg"];
+            const ext = args.imageFileName
+                .toLowerCase()
+                .slice(args.imageFileName.lastIndexOf("."));
+            if (!allowedImg.includes(ext)) {
+                return textError(`Error: Image file type not supported for "${args.imageFileName}". Allowed: PNG, JPEG`);
+            }
+            const attachment = {
+                fileName: args.imageFileName,
+                base64FileContent: args.imageBase64,
+                annotation: args.imageAnnotation ?? undefined,
+            };
+            const iotEventData = {
+                projectId: args.projectId,
+                eventDate: args.eventDate,
+                iotVendorId: args.iotVendorId,
+                iotEventTypeId: args.iotEventTypeId,
+                locationId: args.locationId,
+                description: args.description,
+                contentType: args.contentType,
+                content: args.content,
+                attachments: [attachment],
+            };
+            return json(await this.apiClient.createIoTEvent(iotEventData));
+        }));
     }
-    async handleCreateIoTEventWithImage(args) {
-        // Validate required parameters
-        if (!args.projectId) {
-            return {
-                content: [{ type: 'text', text: 'Error: projectId is required' }]
-            };
+    /** --------------------- HELP SITE HELPERS --------------------- */
+    async fetchHelpArticle(idOrSlug, locale = "en-us") {
+        try {
+            const slug = String(idOrSlug).replace(/^\/+|\/+$/g, "");
+            const url = `https://help.hammertech.com/hc/${locale}/articles/${slug}`;
+            const res = await fetch(url, {
+                headers: { "User-Agent": "HammerTech-MCP/1.0 (+mcp)" },
+            });
+            if (!res.ok)
+                return { url, status: res.status, markdown: null, html: null };
+            const html = await res.text();
+            const titleMatch = html.match(/<h1[^>]*>(.*?)<\/h1>/i);
+            const bodyMatch = html.match(/<div[^>]+class=["'][^"']*(article-body|article__body|zd-article|article-content)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+            const rawBody = bodyMatch ? bodyMatch[2] : html;
+            const text = rawBody
+                .replace(/<script[\s\S]*?<\/script>/gi, "")
+                .replace(/<style[\s\S]*?<\/style>/gi, "")
+                .replace(/<[^>]+>/g, "")
+                .replace(/\n{3,}/g, "\n\n")
+                .trim();
+            const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim() : slug;
+            return { url, title, html: rawBody, markdown: `# ${title}\n\n${text}` };
         }
-        if (!args.iotVendorId) {
-            return {
-                content: [{ type: 'text', text: 'Error: iotVendorId is required' }]
-            };
+        catch (e) {
+            return { url: String(idOrSlug), error: String(e), markdown: null, html: null };
         }
-        if (!args.iotEventTypeId) {
-            return {
-                content: [{ type: 'text', text: 'Error: iotEventTypeId is required' }]
-            };
-        }
-        if (!args.imageBase64) {
-            return {
-                content: [{ type: 'text', text: 'Error: imageBase64 is required' }]
-            };
-        }
-        if (!args.imageFileName) {
-            return {
-                content: [{ type: 'text', text: 'Error: imageFileName is required' }]
-            };
-        }
-        // Set current date/time if eventDate is not provided
-        if (!args.eventDate) {
-            args.eventDate = new Date().toISOString();
-        }
-        // Validate image file extension
-        const allowedImageExtensions = ['.png', '.jpg', '.jpeg'];
-        const fileExtension = args.imageFileName.toLowerCase().substring(args.imageFileName.lastIndexOf('.'));
-        if (!allowedImageExtensions.includes(fileExtension)) {
-            return {
-                content: [{
-                        type: 'text',
-                        text: `Error: Image file type not supported. File "${args.imageFileName}" has extension "${fileExtension}". Allowed image types: PNG, JPEG`
-                    }],
-            };
-        }
-        // Create attachment from image data
-        const attachment = {
-            fileName: args.imageFileName,
-            base64FileContent: args.imageBase64,
-            annotation: args.imageAnnotation || undefined
-        };
-        // Build IoT event data
-        const iotEventData = {
-            projectId: args.projectId,
-            eventDate: args.eventDate,
-            iotVendorId: args.iotVendorId,
-            iotEventTypeId: args.iotEventTypeId,
-            locationId: args.locationId,
-            description: args.description,
-            contentType: args.contentType,
-            content: args.content,
-            attachments: [attachment]
-        };
-        const result = await this.apiClient.createIoTEvent(iotEventData);
-        return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        };
     }
+    async searchHelp(q, locale = "en-us", limit = 5) {
+        try {
+            const url = `https://help.hammertech.com/hc/${locale}/search?query=${encodeURIComponent(q)}`;
+            const res = await fetch(url, { headers: { "User-Agent": "HammerTech-MCP/1.0 (+mcp)" } });
+            if (!res.ok)
+                return { url, items: [], status: res.status };
+            const html = await res.text();
+            const re = /href="\/hc\/[^"]*\/articles\/([0-9]+-[^"]+)"[^>]*>(.*?)<\/a>/gi;
+            const items = [];
+            const seen = new Set();
+            let m;
+            while ((m = re.exec(html)) && items.length < limit) {
+                const slug = m[1];
+                const title = m[2].replace(/<[^>]+>/g, "").trim();
+                if (seen.has(slug))
+                    continue;
+                seen.add(slug);
+                items.push({
+                    idOrSlug: slug,
+                    title,
+                    url: `https://help.hammertech.com/hc/${locale}/articles/${slug}`,
+                });
+            }
+            return { url, items };
+        }
+        catch (e) {
+            return { url: null, items: [], error: String(e) };
+        }
+    }
+    /** --------------------- API CLIENT --------------------- */
     initializeApiClient() {
         const jwtToken = process.env.HAMMERTECH_JWT_TOKEN;
-        const region = process.env.HAMMERTECH_REGION || 'us';
+        const region = process.env.HAMMERTECH_REGION || "us";
         if (!jwtToken) {
-            throw new Error('HAMMERTECH_JWT_TOKEN environment variable is required');
+            throw new Error("HAMMERTECH_JWT_TOKEN environment variable is required");
         }
-        try {
-            const config = ConfigSchema.parse({
-                jwtToken,
-                region,
-            });
-            this.apiClient = new HammerTechApiClient(config);
-        }
-        catch (error) {
-            throw new Error(`Invalid configuration: ${error}`);
-        }
+        const config = ConfigSchema.parse({ jwtToken, region });
+        this.apiClient = new HammerTechApiClient(config);
     }
     async run() {
         try {
             this.initializeApiClient();
             const transport = new StdioServerTransport();
             await this.server.connect(transport);
-            console.error('HammerTech MCP server running on stdio');
+            console.error("HammerTech MCP server (McpServer) running on stdio");
         }
-        catch (error) {
-            console.error('Failed to start server:', error);
+        catch (err) {
+            console.error("Failed to start server:", err);
             process.exit(1);
         }
     }

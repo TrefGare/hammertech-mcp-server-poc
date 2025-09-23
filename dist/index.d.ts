@@ -1,34 +1,61 @@
 #!/usr/bin/env node
-import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { HammerTechApiClient } from "./api-client.js";
 export declare class HammerTechMCPServer {
-    private server;
-    private apiClient;
+    server: McpServer;
+    apiClient: HammerTechApiClient | null;
     constructor();
-    private setupToolHandlers;
-    getAvailableTools(): Tool[];
-    private handleListProjects;
-    private handleGetProject;
-    private handleListWorkers;
-    private handleGetWorker;
-    private handleListWorkerProfiles;
-    private handleGetWorkerProfile;
-    private handleCreateWorkerProfile;
-    private handleUpdateWorkerProfile;
-    private handleListEmployers;
-    private handleGetEmployer;
-    private handleCreateEmployer;
-    private handleListEmployerProfiles;
-    private handleGetEmployerProfile;
-    private handleCreateEmployerProfile;
-    private handleUpdateEmployerProfile;
-    private handleListIoTVendors;
-    private handleGetIoTVendor;
-    private handleCreateIoTVendor;
-    private handleListIoTEvents;
-    private handleGetIoTEvent;
-    private handleCreateIoTEvent;
-    private handleCreateIoTEventWithImage;
-    private initializeApiClient;
+    /** --------------------- RESOURCES --------------------- */
+    registerResources(): void;
+    /** --------------------- PROMPTS --------------------- */
+    registerPrompts(): void;
+    /** --------------------- TOOLS --------------------- */
+    registerTools(): void;
+    /** --------------------- HELP SITE HELPERS --------------------- */
+    fetchHelpArticle(idOrSlug: string, locale?: string): Promise<{
+        url: string;
+        status: number;
+        markdown: null;
+        html: null;
+        title?: undefined;
+        error?: undefined;
+    } | {
+        url: string;
+        title: string;
+        html: string;
+        markdown: string;
+        status?: undefined;
+        error?: undefined;
+    } | {
+        url: string;
+        error: string;
+        markdown: null;
+        html: null;
+        status?: undefined;
+        title?: undefined;
+    }>;
+    searchHelp(q: string, locale?: string, limit?: number): Promise<{
+        url: string;
+        items: never[];
+        status: number;
+        error?: undefined;
+    } | {
+        url: string;
+        items: {
+            idOrSlug: string;
+            title: string;
+            url: string;
+        }[];
+        status?: undefined;
+        error?: undefined;
+    } | {
+        url: null;
+        items: never[];
+        error: string;
+        status?: undefined;
+    }>;
+    /** --------------------- API CLIENT --------------------- */
+    initializeApiClient(): void;
     run(): Promise<void>;
 }
 //# sourceMappingURL=index.d.ts.map

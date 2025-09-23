@@ -1,5 +1,9 @@
 #!/usr/bin/env node
-// Enhanced MCP server with McpServer architecture, Zod validation, Help Center integration, and improved error handling
+// Path B refactor: switch to McpServer with first-class resources, prompts, and tools
+// - Keeps your API client + handlers
+// - Returns structured JSON (not stringified text)
+// - Adds domain resources and parameterized project summary
+// - Adds prompts for domain primer and incident triage
 
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -9,8 +13,8 @@ import { HammerTechApiClient } from "./api-client.js";
 import { ConfigSchema } from "./types.js";
 
 export class HammerTechMCPServer {
-  server: McpServer;
-  apiClient: HammerTechApiClient | null = null;
+  server;
+  apiClient = null;
 
   constructor() {
     this.server = new McpServer({ name: "hammertech-api-server", version: "1.0.0" });
@@ -19,7 +23,7 @@ export class HammerTechMCPServer {
     this.registerTools();
   }
 
-  /** --------------------- RESOURCES --------------------- */
+  /** --------------------- RESOURCES --------------------- **/
   registerResources() {
     // Help Center: article as resource (by id or slug)
     this.server.registerResource(
@@ -55,7 +59,7 @@ export class HammerTechMCPServer {
       async (uri, { q, locale = "en-us", limit = 5 }) => {
         const res = await this.searchHelp(q, locale, limit);
         const lines = [
-          `# Help search: "${q}"`,
+          `# Help search: \"${q}\"`,
           `Source: ${res.url}`,
           "",
           ...(res.items.length
@@ -67,7 +71,7 @@ export class HammerTechMCPServer {
     );
   }
 
-  /** --------------------- PROMPTS --------------------- */
+  /** --------------------- PROMPTS --------------------- **/
   registerPrompts() {
     // Extra prompts for guided flows
     this.server.registerPrompt(
@@ -119,14 +123,14 @@ export class HammerTechMCPServer {
     );
   }
 
-  /** --------------------- TOOLS --------------------- */
+  /** --------------------- TOOLS --------------------- **/
   registerTools() {
     // Helper to keep handlers concise
-    const json = (obj: any) => ({ content: [{ type: "json" as const, json: obj }] });
-    const textError = (msg: string) => ({ content: [{ type: "text" as const, text: msg }], isError: true });
+    const json = (obj) => ({ content: [{ type: "json", json: obj }] });
+    const textError = (msg) => ({ content: [{ type: "text", text: msg }], isError: true });
 
     // Ensure API client is initialized before any call
-    const withApi = (fn: (args: any) => Promise<any>) => async (args: any) => {
+    const withApi = (fn) => async (args) => {
       if (!this.apiClient) {
         throw new Error(
           "HammerTech API client not configured. Set HAMMERTECH_JWT_TOKEN and HAMMERTECH_REGION."
@@ -146,7 +150,7 @@ export class HammerTechMCPServer {
       async () => ({
         content: [
           {
-            type: "json" as const,
+            type: "json",
             json: {
               ok: true,
               server: "hammertech-api-server",
@@ -175,7 +179,7 @@ export class HammerTechMCPServer {
       },
       async ({ q, locale = "en-us", limit = 5 }) => {
         const result = await this.searchHelp(q, locale, limit);
-        return { content: [{ type: "json" as const, json: result }] };
+        return { content: [{ type: "json", json: result }] };
       }
     );
 
@@ -197,7 +201,7 @@ export class HammerTechMCPServer {
         if (!art || (!art.markdown && !art.html)) {
           return {
             content: [
-              { type: "text" as const, text: `Article not available. Tried: ${idOrSlug}` },
+              { type: "text", text: `Article not available. Tried: ${idOrSlug}` },
             ],
             isError: true,
           };
@@ -209,7 +213,7 @@ export class HammerTechMCPServer {
           format,
           body,
         };
-        return { content: [{ type: "json" as const, json: out }] };
+        return { content: [{ type: "json", json: out }] };
       }
     );
 
@@ -231,7 +235,7 @@ export class HammerTechMCPServer {
         if (!art || (!art.markdown && !art.html)) {
           return {
             content: [
-              { type: "text" as const, text: `Article not available. Tried: ${idOrSlug}` },
+              { type: "text", text: `Article not available. Tried: ${idOrSlug}` },
             ],
             isError: true,
           };
@@ -242,7 +246,7 @@ export class HammerTechMCPServer {
         const title = (art.title || (lines[0] || "").replace(/^#\s*/, "")).trim();
 
         // Collect candidate bullet/step lines
-        const bullets: string[] = [];
+        const bullets = [];
         for (const ln of lines) {
           const t = ln.trim();
           if (/^[-*•]\s+/.test(t)) bullets.push(t.replace(/^[-*•]\s+/, ""));
@@ -268,7 +272,7 @@ export class HammerTechMCPServer {
           summary,
           steps: bullets.slice(0, Math.min(maxBullets, bullets.length)),
         };
-        return { content: [{ type: "json" as const, json: out }] };
+        return { content: [{ type: "json", json: out }] };
       }
     );
 
@@ -288,7 +292,7 @@ export class HammerTechMCPServer {
           })
           .strict(),
       },
-      withApi(async (args) => json(await this.apiClient!.listProjects(args)))
+      withApi(async (args) => json(await this.apiClient.listProjects(args)))
     );
 
     this.server.registerTool(
@@ -298,7 +302,7 @@ export class HammerTechMCPServer {
         description: "Retrieve a specific construction project by ID",
         inputSchema: z.object({ id: z.string() }).strict(),
       },
-      withApi(async ({ id }) => json(await this.apiClient!.getProject(id)))
+      withApi(async ({ id }) => json(await this.apiClient.getProject(id)))
     );
 
     /* ---------------- Workers ---------------- */
@@ -316,20 +320,20 @@ export class HammerTechMCPServer {
       "list_workers",
       {
         title: "List workers",
-        description: "List workers (per-project records linking Worker Profiles to specific Projects) with optional filtering and pagination",
+        description: "List workers with optional filters",
         inputSchema: listFilter,
       },
-      withApi(async (args) => json(await this.apiClient!.listWorkers(args)))
+      withApi(async (args) => json(await this.apiClient.listWorkers(args)))
     );
 
     this.server.registerTool(
       "get_worker",
       {
         title: "Get worker",
-        description: "Retrieve a specific worker by ID (per-project record connecting a Worker Profile to a Project)",
+        description: "Retrieve a specific worker by ID",
         inputSchema: z.object({ id: z.string() }).strict(),
       },
-      withApi(async ({ id }) => json(await this.apiClient!.getWorker(id)))
+      withApi(async ({ id }) => json(await this.apiClient.getWorker(id)))
     );
 
     /* ---------------- Worker Profiles ---------------- */
@@ -337,23 +341,23 @@ export class HammerTechMCPServer {
       "list_worker_profiles",
       {
         title: "List worker profiles",
-        description: "List worker profiles (unique individuals/people within the company) with optional filtering and pagination",
+        description: "List worker profiles with optional filters",
         inputSchema: listFilter,
       },
-      withApi(async (args) => json(await this.apiClient!.listWorkerProfiles(args)))
+      withApi(async (args) => json(await this.apiClient.listWorkerProfiles(args)))
     );
 
     this.server.registerTool(
       "get_worker_profile",
       {
         title: "Get worker profile",
-        description: "Retrieve a specific worker profile by ID (unique individual/person within the company)",
+        description: "Retrieve a specific worker profile by ID",
         inputSchema: z
           .object({ id: z.string(), includeConfidentialData: z.boolean().optional() })
           .strict(),
       },
       withApi(async ({ id, includeConfidentialData }) =>
-        json(await this.apiClient!.getWorkerProfile(id, includeConfidentialData))
+        json(await this.apiClient.getWorkerProfile(id, includeConfidentialData))
       )
     );
 
@@ -361,38 +365,38 @@ export class HammerTechMCPServer {
       "create_worker_profile",
       {
         title: "Create worker profile",
-        description: "Create a new worker profile (unique individual/person within the company)",
+        description: "Create a new worker profile",
         inputSchema: z
           .object({
             firstName: z.string(),
             lastName: z.string(),
-            dateOfBirth: z.string().describe("Date of birth in extended ISO 8601 format (YYYY-MM-DDThh:mm:ss), e.g. 1970-01-01T00:00:00"),
+            dateOfBirth: z.string(),
             preferredCommunicationLanguage: z.string(),
             email: z.string().email().optional(),
           })
           .strict(),
       },
-      withApi(async (args) => json(await this.apiClient!.createWorkerProfile(args)))
+      withApi(async (args) => json(await this.apiClient.createWorkerProfile(args)))
     );
 
     this.server.registerTool(
       "update_worker_profile",
       {
         title: "Update worker profile",
-        description: "Update an existing worker profile (unique individual/person within the company)",
+        description: "Update an existing worker profile",
         inputSchema: z
           .object({
             id: z.string(),
             firstName: z.string().optional(),
             lastName: z.string().optional(),
-            dateOfBirth: z.string().describe("Date of birth in extended ISO 8601 format (YYYY-MM-DDThh:mm:ss), e.g. 1970-01-01T00:00:00").optional(),
+            dateOfBirth: z.string().optional(),
             preferredCommunicationLanguage: z.string().optional(),
             email: z.string().optional(),
           })
           .strict(),
       },
       withApi(async ({ id, ...updateData }) =>
-        json(await this.apiClient!.updateWorkerProfile(id, updateData))
+        json(await this.apiClient.updateWorkerProfile(id, updateData))
       )
     );
 
@@ -401,30 +405,30 @@ export class HammerTechMCPServer {
       "list_employers",
       {
         title: "List employers",
-        description: "List employers (companies/organizations associated with specific projects) with optional filtering and pagination",
+        description: "List employers with optional filters",
         inputSchema: listFilter,
       },
-      withApi(async (args) => json(await this.apiClient!.listEmployers(args)))
+      withApi(async (args) => json(await this.apiClient.listEmployers(args)))
     );
 
     this.server.registerTool(
       "get_employer",
       {
         title: "Get employer",
-        description: "Retrieve a specific employer by ID (company/organization associated with a project)",
+        description: "Retrieve a specific employer by ID",
         inputSchema: z.object({ id: z.string() }).strict(),
       },
-      withApi(async ({ id }) => json(await this.apiClient!.getEmployer(id)))
+      withApi(async ({ id }) => json(await this.apiClient.getEmployer(id)))
     );
 
     this.server.registerTool(
       "create_employer",
       {
         title: "Create employer",
-        description: "Create a new employer (associate a company/organization with a project)",
+        description: "Create a new employer",
         inputSchema: z.object({ name: z.string(), description: z.string().optional() }).strict(),
       },
-      withApi(async (args) => json(await this.apiClient!.createEmployer(args)))
+      withApi(async (args) => json(await this.apiClient.createEmployer(args)))
     );
 
     /* ---------------- Employer Profiles ---------------- */
@@ -432,45 +436,45 @@ export class HammerTechMCPServer {
       "list_employer_profiles",
       {
         title: "List employer profiles",
-        description: "List employer profiles (master records for companies/organizations) with optional filtering and pagination",
+        description: "List employer profiles with optional filters",
         inputSchema: listFilter,
       },
-      withApi(async (args) => json(await this.apiClient!.listEmployerProfiles(args)))
+      withApi(async (args) => json(await this.apiClient.listEmployerProfiles(args)))
     );
 
     this.server.registerTool(
       "get_employer_profile",
       {
         title: "Get employer profile",
-        description: "Retrieve a specific employer profile by ID (master company/organization record)",
+        description: "Retrieve a specific employer profile by ID",
         inputSchema: z.object({ id: z.string() }).strict(),
       },
-      withApi(async ({ id }) => json(await this.apiClient!.getEmployerProfile(id)))
+      withApi(async ({ id }) => json(await this.apiClient.getEmployerProfile(id)))
     );
 
     this.server.registerTool(
       "create_employer_profile",
       {
         title: "Create employer profile",
-        description: "Create a new employer profile (master company/organization record)",
+        description: "Create a new employer profile",
         inputSchema: z
           .object({ name: z.string(), description: z.string().optional(), employerId: z.string().optional() })
           .strict(),
       },
-      withApi(async (args) => json(await this.apiClient!.createEmployerProfile(args)))
+      withApi(async (args) => json(await this.apiClient.createEmployerProfile(args)))
     );
 
     this.server.registerTool(
       "update_employer_profile",
       {
         title: "Update employer profile",
-        description: "Update an existing employer profile (master company/organization record)",
+        description: "Update an existing employer profile",
         inputSchema: z
           .object({ id: z.string(), name: z.string().optional(), description: z.string().optional(), employerId: z.string().optional() })
           .strict(),
       },
       withApi(async ({ id, ...updateData }) =>
-        json(await this.apiClient!.updateEmployerProfile(id, updateData))
+        json(await this.apiClient.updateEmployerProfile(id, updateData))
       )
     );
 
@@ -479,30 +483,30 @@ export class HammerTechMCPServer {
       "list_iot_vendors",
       {
         title: "List IoT vendors",
-        description: "List IoT vendors (manufacturers/providers of IoT devices) with optional filtering and pagination",
+        description: "List IoT vendors with optional filters",
         inputSchema: listFilter,
       },
-      withApi(async (args) => json(await this.apiClient!.listIoTVendors(args)))
+      withApi(async (args) => json(await this.apiClient.listIoTVendors(args)))
     );
 
     this.server.registerTool(
       "get_iot_vendor",
       {
         title: "Get IoT vendor",
-        description: "Retrieve a specific IoT vendor by ID (manufacturer/provider of IoT devices)",
+        description: "Retrieve a specific IoT vendor by ID",
         inputSchema: z.object({ id: z.string() }).strict(),
       },
-      withApi(async ({ id }) => json(await this.apiClient!.getIoTVendor(id)))
+      withApi(async ({ id }) => json(await this.apiClient.getIoTVendor(id)))
     );
 
     this.server.registerTool(
       "create_iot_vendor",
       {
         title: "Create IoT vendor",
-        description: "Create a new IoT vendor (manufacturer/provider of IoT devices)",
+        description: "Create a new IoT vendor",
         inputSchema: z.object({ name: z.string(), description: z.string().optional() }).strict(),
       },
-      withApi(async (args) => json(await this.apiClient!.createIoTVendor(args)))
+      withApi(async (args) => json(await this.apiClient.createIoTVendor(args)))
     );
 
     /* ---------------- IoT Events ---------------- */
@@ -510,10 +514,10 @@ export class HammerTechMCPServer {
       "list_iot_events",
       {
         title: "List IoT events",
-        description: "List IoT events with optional filtering and pagination",
+        description: "List IoT events with optional filters",
         inputSchema: listFilter,
       },
-      withApi(async (args) => json(await this.apiClient!.listIoTEvents(args)))
+      withApi(async (args) => json(await this.apiClient.listIoTEvents(args)))
     );
 
     this.server.registerTool(
@@ -523,7 +527,7 @@ export class HammerTechMCPServer {
         description: "Retrieve a specific IoT event by ID",
         inputSchema: z.object({ id: z.string() }).strict(),
       },
-      withApi(async ({ id }) => json(await this.apiClient!.getIoTEvent(id)))
+      withApi(async ({ id }) => json(await this.apiClient.getIoTEvent(id)))
     );
 
     this.server.registerTool(
@@ -531,7 +535,7 @@ export class HammerTechMCPServer {
       {
         title: "Create IoT event",
         description:
-          "Create a new IoT event record capturing data points from connected IoT devices with associated metadata, optional structured content, and file attachments",
+          "Create a new IoT event record capturing data points from connected IoT devices with optional metadata and attachments",
         inputSchema: z
           .object({
             projectId: z.string(),
@@ -564,12 +568,12 @@ export class HammerTechMCPServer {
             const ext = a.fileName.toLowerCase().slice(a.fileName.lastIndexOf("."));
             if (!allowed.includes(ext)) {
               return textError(
-                `Error: File type not supported for "${a.fileName}". Allowed types: PNG, JPEG, PDF, DOC, DOCX, XLS, XLSX`
+                `Error: File type not supported for \"${a.fileName}\". Allowed types: PNG, JPEG, PDF, DOC, DOCX, XLS, XLSX`
               );
             }
           }
         }
-        return json(await this.apiClient!.createIoTEvent(args));
+        return json(await this.apiClient.createIoTEvent(args));
       })
     );
 
@@ -577,7 +581,7 @@ export class HammerTechMCPServer {
       "create_iot_event_with_image",
       {
         title: "Create IoT event (with image)",
-        description: "Create a new IoT event record with an uploaded image attachment. Use when an image has been uploaded in the conversation.",
+        description: "Create a new IoT event and attach an uploaded image from the conversation.",
         inputSchema: z
           .object({
             projectId: z.string(),
@@ -602,7 +606,7 @@ export class HammerTechMCPServer {
           .slice(args.imageFileName.lastIndexOf("."));
         if (!allowedImg.includes(ext)) {
           return textError(
-            `Error: Image file type not supported for "${args.imageFileName}". Allowed: PNG, JPEG`
+            `Error: Image file type not supported for \"${args.imageFileName}\". Allowed: PNG, JPEG`
           );
         }
         const attachment = {
@@ -621,13 +625,13 @@ export class HammerTechMCPServer {
           content: args.content,
           attachments: [attachment],
         };
-        return json(await this.apiClient!.createIoTEvent(iotEventData));
+        return json(await this.apiClient.createIoTEvent(iotEventData));
       })
     );
   }
 
-  /** --------------------- HELP SITE HELPERS --------------------- */
-  async fetchHelpArticle(idOrSlug: string, locale = "en-us") {
+  /** --------------------- HELP SITE HELPERS --------------------- **/
+  async fetchHelpArticle(idOrSlug, locale = "en-us") {
     try {
       const slug = String(idOrSlug).replace(/^\/+|\/+$/g, "");
       const url = `https://help.hammertech.com/hc/${locale}/articles/${slug}`;
@@ -655,14 +659,14 @@ export class HammerTechMCPServer {
     }
   }
 
-  async searchHelp(q: string, locale = "en-us", limit = 5) {
+  async searchHelp(q, locale = "en-us", limit = 5) {
     try {
       const url = `https://help.hammertech.com/hc/${locale}/search?query=${encodeURIComponent(q)}`;
       const res = await fetch(url, { headers: { "User-Agent": "HammerTech-MCP/1.0 (+mcp)" } });
       if (!res.ok) return { url, items: [], status: res.status };
       const html = await res.text();
-      const re = /href="\/hc\/[^"]*\/articles\/([0-9]+-[^"]+)"[^>]*>(.*?)<\/a>/gi;
-      const items: Array<{idOrSlug: string, title: string, url: string}> = [];
+      const re = /href=\"\/hc\/[^\"]*\/articles\/([0-9]+-[^\"]+)\"[^>]*>(.*?)<\/a>/gi;
+      const items = [];
       const seen = new Set();
       let m;
       while ((m = re.exec(html)) && items.length < limit) {
@@ -682,10 +686,10 @@ export class HammerTechMCPServer {
     }
   }
 
-  /** --------------------- API CLIENT --------------------- */
+  /** --------------------- API CLIENT --------------------- **/
   initializeApiClient() {
     const jwtToken = process.env.HAMMERTECH_JWT_TOKEN;
-    const region = (process.env.HAMMERTECH_REGION as 'us' | 'au' | 'eu') || "us";
+    const region = process.env.HAMMERTECH_REGION || "us";
     if (!jwtToken) {
       throw new Error("HAMMERTECH_JWT_TOKEN environment variable is required");
     }
