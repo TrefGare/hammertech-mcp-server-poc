@@ -4,6 +4,32 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema, } from '@modelcontextprotocol/sdk/types.js';
 import { HammerTechApiClient } from './api-client.js';
 import { ConfigSchema } from './types.js';
+// Reusable sortBy schema constants
+const SORT_BY_ID_SCHEMA = {
+    type: 'string',
+    enum: ['id', 'iddesc'],
+    description: 'Sort by ID in ascending or descending order'
+};
+const SORT_BY_ID_NAME_SCHEMA = {
+    type: 'string',
+    enum: ['id', 'iddesc', 'name', 'namedesc'],
+    description: 'Sort by ID or name in ascending or descending order'
+};
+const SORT_BY_WORKER_SCHEMA = {
+    type: 'string',
+    enum: ['id', 'iddesc', 'testcompleted', 'testcompleteddesc'],
+    description: 'Sort workers by specified field'
+};
+const SORT_BY_WORKER_PROFILES_SCHEMA = {
+    type: 'string',
+    enum: ['id', 'iddesc', 'dob', 'lastinducted', 'lastinducteddesc'],
+    description: 'Sort worker profiles by specified field'
+};
+const SORT_BY_EMPLOYERS_SCHEMA = {
+    type: 'string',
+    enum: ['id', 'iddesc', 'started', 'starteddesc'],
+    description: 'Sort employers by specified field'
+};
 export class HammerTechMCPServer {
     server;
     apiClient = null;
@@ -162,7 +188,7 @@ export class HammerTechMCPServer {
                     properties: {
                         skip: { type: 'number' },
                         take: { type: 'number' },
-                        sortBy: { type: 'string', enum: ['id', 'iddesc', 'testcompleted', 'testcompleteddesc'], description: 'Sort workers by specified field' },
+                        sortBy: SORT_BY_WORKER_SCHEMA,
                         modifiedSince: { type: 'string' },
                         projectId: { type: 'string' },
                     },
@@ -202,7 +228,7 @@ export class HammerTechMCPServer {
                     properties: {
                         skip: { type: 'number' },
                         take: { type: 'number' },
-                        sortBy: { type: 'string', enum: ['id', 'iddesc', 'dob', 'lastinducted', 'lastinducteddesc'], description: 'Sort worker profiles by specified field' },
+                        sortBy: SORT_BY_WORKER_PROFILES_SCHEMA,
                         modifiedSince: { type: 'string' },
                         projectId: { type: 'string' },
                     },
@@ -262,7 +288,7 @@ export class HammerTechMCPServer {
                     properties: {
                         skip: { type: 'number' },
                         take: { type: 'number' },
-                        sortBy: { type: 'string', enum: ['id', 'iddesc', 'started', 'starteddesc'], description: 'Sort employers by specified field' },
+                        sortBy: SORT_BY_EMPLOYERS_SCHEMA,
                         modifiedSince: { type: 'string' },
                         projectId: { type: 'string' },
                     },
@@ -300,7 +326,7 @@ export class HammerTechMCPServer {
                     properties: {
                         skip: { type: 'number' },
                         take: { type: 'number' },
-                        sortBy: { type: 'string', enum: ['id', 'iddesc', 'name', 'namedesc'], description: 'Sort employer profiles by specified field' },
+                        sortBy: SORT_BY_ID_NAME_SCHEMA,
                         modifiedSince: { type: 'string' },
                         projectId: { type: 'string' },
                     },
@@ -353,7 +379,7 @@ export class HammerTechMCPServer {
                     properties: {
                         skip: { type: 'number' },
                         take: { type: 'number' },
-                        sortBy: { type: 'string', enum: ['id', 'iddesc'], description: 'Sort equipment inductions by specified field' },
+                        sortBy: SORT_BY_ID_SCHEMA,
                         modifiedSince: { type: 'string' },
                         projectId: { type: 'string' },
                         includeDeleted: { type: 'boolean' },
@@ -369,7 +395,7 @@ export class HammerTechMCPServer {
                     properties: {
                         skip: { type: 'number' },
                         take: { type: 'number' },
-                        sortBy: { type: 'string', enum: ['id', 'iddesc'], description: 'Sort IoT vendors by specified field' },
+                        sortBy: SORT_BY_ID_SCHEMA,
                         modifiedSince: { type: 'string' },
                         projectId: { type: 'string' },
                     },
@@ -525,7 +551,7 @@ export class HammerTechMCPServer {
                     properties: {
                         skip: { type: 'number', description: 'Number of records to skip for pagination' },
                         take: { type: 'number', description: 'Number of records to take (max 100)' },
-                        sortBy: { type: 'string', enum: ['id', 'iddesc', 'name'], description: 'Sort job titles by specified field' },
+                        sortBy: SORT_BY_ID_NAME_SCHEMA,
                         modifiedSince: { type: 'string', description: 'ISO datetime to filter modified records' },
                         projectId: { type: 'string', description: 'Filter by project ID' },
                     },

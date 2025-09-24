@@ -179,8 +179,8 @@ export declare class HammerTechMCPServer {
                     description?: undefined;
                 };
                 sortBy: {
-                    type: string;
-                    enum: string[];
+                    type: "string";
+                    enum: readonly ["id", "iddesc", "testcompleted", "testcompleteddesc"];
                     description: string;
                 };
                 modifiedSince: {
@@ -290,6 +290,70 @@ export declare class HammerTechMCPServer {
                 maxBullets?: undefined;
             };
             required: string[];
+        };
+    } | {
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                skip: {
+                    type: string;
+                    description?: undefined;
+                };
+                take: {
+                    type: string;
+                    description?: undefined;
+                };
+                sortBy: {
+                    type: "string";
+                    enum: readonly ["id", "iddesc", "dob", "lastinducted", "lastinducteddesc"];
+                    description: string;
+                };
+                modifiedSince: {
+                    type: string;
+                    description?: undefined;
+                };
+                projectId: {
+                    type: string;
+                    description?: undefined;
+                    format?: undefined;
+                };
+                id?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                businessName?: undefined;
+                description?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                includeDeleted?: undefined;
+                name?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                locale?: undefined;
+                limit?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required?: undefined;
         };
     } | {
         name: string;
@@ -483,6 +547,70 @@ export declare class HammerTechMCPServer {
         inputSchema: {
             type: string;
             properties: {
+                skip: {
+                    type: string;
+                    description?: undefined;
+                };
+                take: {
+                    type: string;
+                    description?: undefined;
+                };
+                sortBy: {
+                    type: "string";
+                    enum: readonly ["id", "iddesc", "started", "starteddesc"];
+                    description: string;
+                };
+                modifiedSince: {
+                    type: string;
+                    description?: undefined;
+                };
+                projectId: {
+                    type: string;
+                    description?: undefined;
+                    format?: undefined;
+                };
+                id?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                businessName?: undefined;
+                description?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                includeDeleted?: undefined;
+                name?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                locale?: undefined;
+                limit?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required?: undefined;
+        };
+    } | {
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
                 businessName: {
                     type: string;
                     description: string;
@@ -529,6 +657,70 @@ export declare class HammerTechMCPServer {
                 maxBullets?: undefined;
             };
             required: string[];
+        };
+    } | {
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                skip: {
+                    type: string;
+                    description?: undefined;
+                };
+                take: {
+                    type: string;
+                    description?: undefined;
+                };
+                sortBy: {
+                    type: "string";
+                    enum: readonly ["id", "iddesc", "name", "namedesc"];
+                    description: string;
+                };
+                modifiedSince: {
+                    type: string;
+                    description?: undefined;
+                };
+                projectId: {
+                    type: string;
+                    description?: undefined;
+                    format?: undefined;
+                };
+                id?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                businessName?: undefined;
+                description?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                includeDeleted?: undefined;
+                name?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                locale?: undefined;
+                limit?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required?: undefined;
         };
     } | {
         name: string;
@@ -660,8 +852,8 @@ export declare class HammerTechMCPServer {
                     description?: undefined;
                 };
                 sortBy: {
-                    type: string;
-                    enum: string[];
+                    type: "string";
+                    enum: readonly ["id", "iddesc"];
                     description: string;
                 };
                 modifiedSince: {
@@ -691,6 +883,70 @@ export declare class HammerTechMCPServer {
                 description?: undefined;
                 abn?: undefined;
                 internalIdentifier?: undefined;
+                name?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                locale?: undefined;
+                limit?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required?: undefined;
+        };
+    } | {
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                skip: {
+                    type: string;
+                    description?: undefined;
+                };
+                take: {
+                    type: string;
+                    description?: undefined;
+                };
+                sortBy: {
+                    type: "string";
+                    enum: readonly ["id", "iddesc"];
+                    description: string;
+                };
+                modifiedSince: {
+                    type: string;
+                    description?: undefined;
+                };
+                projectId: {
+                    type: string;
+                    description?: undefined;
+                    format?: undefined;
+                };
+                id?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                businessName?: undefined;
+                description?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                includeDeleted?: undefined;
                 name?: undefined;
                 eventDate?: undefined;
                 iotVendorId?: undefined;
@@ -780,8 +1036,6 @@ export declare class HammerTechMCPServer {
                 };
                 sortBy: {
                     type: string;
-                    enum?: undefined;
-                    description?: undefined;
                 };
                 modifiedSince: {
                     type: string;
@@ -1193,8 +1447,8 @@ export declare class HammerTechMCPServer {
                     description: string;
                 };
                 sortBy: {
-                    type: string;
-                    enum: string[];
+                    type: "string";
+                    enum: readonly ["id", "iddesc", "name", "namedesc"];
                     description: string;
                 };
                 modifiedSince: {
