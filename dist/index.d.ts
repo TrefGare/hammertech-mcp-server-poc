@@ -33,6 +33,7 @@ export declare class HammerTechMCPServer {
                 description?: undefined;
                 abn?: undefined;
                 internalIdentifier?: undefined;
+                includeDeleted?: undefined;
                 name?: undefined;
                 eventDate?: undefined;
                 iotVendorId?: undefined;
@@ -92,6 +93,7 @@ export declare class HammerTechMCPServer {
                 description?: undefined;
                 abn?: undefined;
                 internalIdentifier?: undefined;
+                includeDeleted?: undefined;
                 name?: undefined;
                 eventDate?: undefined;
                 iotVendorId?: undefined;
@@ -141,6 +143,7 @@ export declare class HammerTechMCPServer {
                 description?: undefined;
                 abn?: undefined;
                 internalIdentifier?: undefined;
+                includeDeleted?: undefined;
                 name?: undefined;
                 eventDate?: undefined;
                 iotVendorId?: undefined;
@@ -204,6 +207,7 @@ export declare class HammerTechMCPServer {
                 description?: undefined;
                 abn?: undefined;
                 internalIdentifier?: undefined;
+                includeDeleted?: undefined;
                 name?: undefined;
                 eventDate?: undefined;
                 iotVendorId?: undefined;
@@ -266,6 +270,7 @@ export declare class HammerTechMCPServer {
                 description?: undefined;
                 abn?: undefined;
                 internalIdentifier?: undefined;
+                includeDeleted?: undefined;
                 name?: undefined;
                 eventDate?: undefined;
                 iotVendorId?: undefined;
@@ -318,6 +323,7 @@ export declare class HammerTechMCPServer {
                 description?: undefined;
                 abn?: undefined;
                 internalIdentifier?: undefined;
+                includeDeleted?: undefined;
                 name?: undefined;
                 eventDate?: undefined;
                 iotVendorId?: undefined;
@@ -382,6 +388,7 @@ export declare class HammerTechMCPServer {
                 description?: undefined;
                 abn?: undefined;
                 internalIdentifier?: undefined;
+                includeDeleted?: undefined;
                 name?: undefined;
                 eventDate?: undefined;
                 iotVendorId?: undefined;
@@ -449,6 +456,7 @@ export declare class HammerTechMCPServer {
                 description?: undefined;
                 abn?: undefined;
                 internalIdentifier?: undefined;
+                includeDeleted?: undefined;
                 name?: undefined;
                 eventDate?: undefined;
                 iotVendorId?: undefined;
@@ -501,6 +509,7 @@ export declare class HammerTechMCPServer {
                 email?: undefined;
                 abn?: undefined;
                 internalIdentifier?: undefined;
+                includeDeleted?: undefined;
                 name?: undefined;
                 eventDate?: undefined;
                 iotVendorId?: undefined;
@@ -556,6 +565,7 @@ export declare class HammerTechMCPServer {
                 preferredCommunicationLanguage?: undefined;
                 email?: undefined;
                 description?: undefined;
+                includeDeleted?: undefined;
                 name?: undefined;
                 eventDate?: undefined;
                 iotVendorId?: undefined;
@@ -614,6 +624,7 @@ export declare class HammerTechMCPServer {
                 preferredCommunicationLanguage?: undefined;
                 email?: undefined;
                 description?: undefined;
+                includeDeleted?: undefined;
                 name?: undefined;
                 eventDate?: undefined;
                 iotVendorId?: undefined;
@@ -633,6 +644,72 @@ export declare class HammerTechMCPServer {
                 maxBullets?: undefined;
             };
             required: string[];
+        };
+    } | {
+        name: string;
+        description: string;
+        inputSchema: {
+            type: string;
+            properties: {
+                skip: {
+                    type: string;
+                    description?: undefined;
+                };
+                take: {
+                    type: string;
+                    description?: undefined;
+                };
+                sortBy: {
+                    type: string;
+                    enum: string[];
+                    description: string;
+                };
+                modifiedSince: {
+                    type: string;
+                    description?: undefined;
+                };
+                projectId: {
+                    type: string;
+                    description?: undefined;
+                    format?: undefined;
+                };
+                includeDeleted: {
+                    type: string;
+                };
+                id?: undefined;
+                employerId?: undefined;
+                workerProfileId?: undefined;
+                inductionChecklistSignatureFileId?: undefined;
+                includeConfidentialData?: undefined;
+                firstName?: undefined;
+                lastName?: undefined;
+                dateOfBirth?: undefined;
+                jobTitle?: undefined;
+                preferredCommunicationLanguage?: undefined;
+                email?: undefined;
+                businessName?: undefined;
+                description?: undefined;
+                abn?: undefined;
+                internalIdentifier?: undefined;
+                name?: undefined;
+                eventDate?: undefined;
+                iotVendorId?: undefined;
+                iotEventTypeId?: undefined;
+                locationId?: undefined;
+                contentType?: undefined;
+                content?: undefined;
+                attachments?: undefined;
+                imageBase64?: undefined;
+                imageFileName?: undefined;
+                imageAnnotation?: undefined;
+                q?: undefined;
+                locale?: undefined;
+                limit?: undefined;
+                idOrSlug?: undefined;
+                format?: undefined;
+                maxBullets?: undefined;
+            };
+            required?: undefined;
         };
     } | {
         name: string;
@@ -667,6 +744,7 @@ export declare class HammerTechMCPServer {
                 businessName?: undefined;
                 abn?: undefined;
                 internalIdentifier?: undefined;
+                includeDeleted?: undefined;
                 eventDate?: undefined;
                 iotVendorId?: undefined;
                 iotEventTypeId?: undefined;
@@ -729,6 +807,7 @@ export declare class HammerTechMCPServer {
                 description?: undefined;
                 abn?: undefined;
                 internalIdentifier?: undefined;
+                includeDeleted?: undefined;
                 name?: undefined;
                 eventDate?: undefined;
                 iotVendorId?: undefined;
@@ -832,6 +911,7 @@ export declare class HammerTechMCPServer {
                 businessName?: undefined;
                 abn?: undefined;
                 internalIdentifier?: undefined;
+                includeDeleted?: undefined;
                 name?: undefined;
                 imageBase64?: undefined;
                 imageFileName?: undefined;
@@ -918,6 +998,7 @@ export declare class HammerTechMCPServer {
                 businessName?: undefined;
                 abn?: undefined;
                 internalIdentifier?: undefined;
+                includeDeleted?: undefined;
                 name?: undefined;
                 attachments?: undefined;
                 q?: undefined;
@@ -967,6 +1048,7 @@ export declare class HammerTechMCPServer {
                 description?: undefined;
                 abn?: undefined;
                 internalIdentifier?: undefined;
+                includeDeleted?: undefined;
                 name?: undefined;
                 eventDate?: undefined;
                 iotVendorId?: undefined;
@@ -1022,6 +1104,7 @@ export declare class HammerTechMCPServer {
                 description?: undefined;
                 abn?: undefined;
                 internalIdentifier?: undefined;
+                includeDeleted?: undefined;
                 name?: undefined;
                 eventDate?: undefined;
                 iotVendorId?: undefined;
@@ -1077,6 +1160,7 @@ export declare class HammerTechMCPServer {
                 description?: undefined;
                 abn?: undefined;
                 internalIdentifier?: undefined;
+                includeDeleted?: undefined;
                 name?: undefined;
                 eventDate?: undefined;
                 iotVendorId?: undefined;
@@ -1137,6 +1221,7 @@ export declare class HammerTechMCPServer {
                 description?: undefined;
                 abn?: undefined;
                 internalIdentifier?: undefined;
+                includeDeleted?: undefined;
                 name?: undefined;
                 eventDate?: undefined;
                 iotVendorId?: undefined;
@@ -1255,6 +1340,12 @@ export declare class HammerTechMCPServer {
         }[];
     }>;
     handleUpdateEmployerProfile(args: any): Promise<{
+        content: {
+            type: string;
+            text: string;
+        }[];
+    }>;
+    handleListEquipmentInductions(args: any): Promise<{
         content: {
             type: string;
             text: string;

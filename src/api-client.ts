@@ -175,6 +175,11 @@ export class HammerTechApiClient {
     return this.makeRequest<IoTEventDescriptor>('POST', '/api/v1/IoTEvents', data);
   }
 
+  // Equipment Inductions
+  async listEquipmentInductions(params?: ListParams): Promise<HammerTechApiResponse<any[]>> {
+    return this.makeRequest<any[]>('GET', '/api/v1/EquipmentInductions', undefined, params);
+  }
+
   // Job Titles
   async listJobTitles(params?: ListParams): Promise<HammerTechApiResponse<any[]>> {
     return this.makeRequest<any[]>('GET', '/api/v1/JobTitles', undefined, params);

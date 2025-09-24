@@ -27,6 +27,7 @@ export declare class HammerTechApiClient {
     listIoTEvents(params?: ListParams): Promise<HammerTechApiResponse<IoTEventDescriptor[]>>;
     getIoTEvent(id: string): Promise<HammerTechApiResponse<IoTEventDescriptor>>;
     createIoTEvent(data: CreateIoTEventRequest): Promise<HammerTechApiResponse<IoTEventDescriptor>>;
+    listEquipmentInductions(params?: ListParams): Promise<HammerTechApiResponse<any[]>>;
     listJobTitles(params?: ListParams): Promise<HammerTechApiResponse<any[]>>;
 }
 //# sourceMappingURL=api-client.d.ts.map

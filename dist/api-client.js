@@ -126,6 +126,10 @@ export class HammerTechApiClient {
     async createIoTEvent(data) {
         return this.makeRequest('POST', '/api/v1/IoTEvents', data);
     }
+    // Equipment Inductions
+    async listEquipmentInductions(params) {
+        return this.makeRequest('GET', '/api/v1/EquipmentInductions', undefined, params);
+    }
     // Job Titles
     async listJobTitles(params) {
         return this.makeRequest('GET', '/api/v1/JobTitles', undefined, params);

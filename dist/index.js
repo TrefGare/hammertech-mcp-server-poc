@@ -71,6 +71,9 @@ export class HammerTechMCPServer {
                         return await this.handleCreateEmployerProfile(args);
                     case 'update_employer_profile':
                         return await this.handleUpdateEmployerProfile(args);
+                    // Equipment Inductions  
+                    case 'list_equipment_inductions':
+                        return await this.handleListEquipmentInductions(args);
                     // IoT Vendors
                     case 'list_iot_vendors':
                         return await this.handleListIoTVendors(args);
@@ -341,6 +344,22 @@ export class HammerTechMCPServer {
                     required: ['id'],
                 },
             },
+            // Equipment Inductions
+            {
+                name: 'list_equipment_inductions',
+                description: 'List equipment inductions with optional filtering and pagination',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        skip: { type: 'number' },
+                        take: { type: 'number' },
+                        sortBy: { type: 'string', enum: ['id', 'iddesc'], description: 'Sort equipment inductions by specified field' },
+                        modifiedSince: { type: 'string' },
+                        projectId: { type: 'string' },
+                        includeDeleted: { type: 'boolean' },
+                    },
+                },
+            },
             // IoT Vendors
             {
                 name: 'list_iot_vendors',
@@ -350,7 +369,7 @@ export class HammerTechMCPServer {
                     properties: {
                         skip: { type: 'number' },
                         take: { type: 'number' },
-                        sortBy: { type: 'string', enum: ['id'], description: 'Sort IoT vendors by specified field' },
+                        sortBy: { type: 'string', enum: ['id', 'iddesc'], description: 'Sort IoT vendors by specified field' },
                         modifiedSince: { type: 'string' },
                         projectId: { type: 'string' },
                     },
@@ -652,6 +671,12 @@ export class HammerTechMCPServer {
     async handleUpdateEmployerProfile(args) {
         const { id, ...updateData } = args;
         const result = await this.apiClient.updateEmployerProfile(id, updateData);
+        return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        };
+    }
+    async handleListEquipmentInductions(args) {
+        const result = await this.apiClient.listEquipmentInductions(args);
         return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
         };
