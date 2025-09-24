@@ -37,8 +37,17 @@ export class HammerTechApiClient {
             };
         }
         catch (error) {
+            // Handle different error response formats:
+            // 400: { isSuccess, httpStatusCode, messageText, ... }
+            // 500: { Code, Message }
+            // 401: empty body
+            const errorMessage = error.response?.data?.messageText || // 400 validation errors
+                error.response?.data?.Message || // 500 internal errors  
+                error.response?.data?.message || // fallback for other formats
+                error.message || // network/axios errors
+                'Unknown error';
             return {
-                error: error.response?.data?.message || error.message || 'Unknown error',
+                error: errorMessage,
                 status: error.response?.status || 500
             };
         }

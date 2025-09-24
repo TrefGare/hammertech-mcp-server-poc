@@ -62,7 +62,7 @@ export class HammerTechMCPServer {
           case 'get_worker':
             return await this.handleGetWorker(args);
           case 'create_worker':
-            return await this.handleCreateWorker(args);
+            return await this.handleCreateWorker(args as unknown as CreateWorkerRequest);
 
           // Worker Profiles
           case 'list_worker_profiles':
@@ -151,7 +151,7 @@ export class HammerTechMCPServer {
         },
       },
 
-      // Projects
+      // Projects - does not support sortBy
       {
         name: 'list_projects',
         description: 'List construction projects with optional filtering and pagination',
@@ -160,7 +160,6 @@ export class HammerTechMCPServer {
           properties: {
             skip: { type: 'number', description: 'Number of records to skip for pagination' },
             take: { type: 'number', description: 'Number of records to take (max 100)' },
-            sortBy: { type: 'string', description: 'Sort order (id, iddesc, descr)' },
             modifiedSince: { type: 'string', description: 'ISO datetime to filter modified records' },
             projectId: { type: 'string', description: 'Filter by project ID' },
           },
@@ -187,7 +186,7 @@ export class HammerTechMCPServer {
           properties: {
             skip: { type: 'number' },
             take: { type: 'number' },
-            sortBy: { type: 'string' },
+            sortBy: { type: 'string', enum: ['id', 'iddesc', 'testcompleted', 'testcompleteddesc'], description: 'Sort workers by specified field' },
             modifiedSince: { type: 'string' },
             projectId: { type: 'string' },
           },
@@ -228,7 +227,7 @@ export class HammerTechMCPServer {
           properties: {
             skip: { type: 'number' },
             take: { type: 'number' },
-            sortBy: { type: 'string' },
+            sortBy: { type: 'string', enum: ['id', 'iddesc', 'dob', 'lastinducted', 'lastinducteddesc'], description: 'Sort worker profiles by specified field' },
             modifiedSince: { type: 'string' },
             projectId: { type: 'string' },
           },
@@ -289,7 +288,7 @@ export class HammerTechMCPServer {
           properties: {
             skip: { type: 'number' },
             take: { type: 'number' },
-            sortBy: { type: 'string' },
+            sortBy: { type: 'string', enum: ['id', 'iddesc', 'started', 'starteddesc'], description: 'Sort employers by specified field' },
             modifiedSince: { type: 'string' },
             projectId: { type: 'string' },
           },
@@ -328,7 +327,7 @@ export class HammerTechMCPServer {
           properties: {
             skip: { type: 'number' },
             take: { type: 'number' },
-            sortBy: { type: 'string' },
+            sortBy: { type: 'string', enum: ['id', 'iddesc', 'name', 'namedesc'], description: 'Sort employer profiles by specified field' },
             modifiedSince: { type: 'string' },
             projectId: { type: 'string' },
           },
@@ -382,7 +381,7 @@ export class HammerTechMCPServer {
           properties: {
             skip: { type: 'number' },
             take: { type: 'number' },
-            sortBy: { type: 'string' },
+            sortBy: { type: 'string', enum: ['id'], description: 'Sort IoT vendors by specified field' },
             modifiedSince: { type: 'string' },
             projectId: { type: 'string' },
           },
@@ -541,7 +540,7 @@ export class HammerTechMCPServer {
           properties: {
             skip: { type: 'number', description: 'Number of records to skip for pagination' },
             take: { type: 'number', description: 'Number of records to take (max 100)' },
-            sortBy: { type: 'string', description: 'Sort order' },
+            sortBy: { type: 'string', enum: ['id', 'iddesc', 'name'], description: 'Sort job titles by specified field' },
             modifiedSince: { type: 'string', description: 'ISO datetime to filter modified records' },
             projectId: { type: 'string', description: 'Filter by project ID' },
           },

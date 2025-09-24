@@ -125,7 +125,7 @@ export class HammerTechMCPServer {
                     properties: {},
                 },
             },
-            // Projects
+            // Projects - does not support sortBy
             {
                 name: 'list_projects',
                 description: 'List construction projects with optional filtering and pagination',
@@ -134,7 +134,6 @@ export class HammerTechMCPServer {
                     properties: {
                         skip: { type: 'number', description: 'Number of records to skip for pagination' },
                         take: { type: 'number', description: 'Number of records to take (max 100)' },
-                        sortBy: { type: 'string', description: 'Sort order (id, iddesc, descr)' },
                         modifiedSince: { type: 'string', description: 'ISO datetime to filter modified records' },
                         projectId: { type: 'string', description: 'Filter by project ID' },
                     },
@@ -160,7 +159,7 @@ export class HammerTechMCPServer {
                     properties: {
                         skip: { type: 'number' },
                         take: { type: 'number' },
-                        sortBy: { type: 'string' },
+                        sortBy: { type: 'string', enum: ['id', 'iddesc', 'testcompleted', 'testcompleteddesc'], description: 'Sort workers by specified field' },
                         modifiedSince: { type: 'string' },
                         projectId: { type: 'string' },
                     },
@@ -200,7 +199,7 @@ export class HammerTechMCPServer {
                     properties: {
                         skip: { type: 'number' },
                         take: { type: 'number' },
-                        sortBy: { type: 'string' },
+                        sortBy: { type: 'string', enum: ['id', 'iddesc', 'dob', 'lastinducted', 'lastinducteddesc'], description: 'Sort worker profiles by specified field' },
                         modifiedSince: { type: 'string' },
                         projectId: { type: 'string' },
                     },
@@ -260,7 +259,7 @@ export class HammerTechMCPServer {
                     properties: {
                         skip: { type: 'number' },
                         take: { type: 'number' },
-                        sortBy: { type: 'string' },
+                        sortBy: { type: 'string', enum: ['id', 'iddesc', 'started', 'starteddesc'], description: 'Sort employers by specified field' },
                         modifiedSince: { type: 'string' },
                         projectId: { type: 'string' },
                     },
@@ -298,7 +297,7 @@ export class HammerTechMCPServer {
                     properties: {
                         skip: { type: 'number' },
                         take: { type: 'number' },
-                        sortBy: { type: 'string' },
+                        sortBy: { type: 'string', enum: ['id', 'iddesc', 'name', 'namedesc'], description: 'Sort employer profiles by specified field' },
                         modifiedSince: { type: 'string' },
                         projectId: { type: 'string' },
                     },
@@ -351,7 +350,7 @@ export class HammerTechMCPServer {
                     properties: {
                         skip: { type: 'number' },
                         take: { type: 'number' },
-                        sortBy: { type: 'string' },
+                        sortBy: { type: 'string', enum: ['id'], description: 'Sort IoT vendors by specified field' },
                         modifiedSince: { type: 'string' },
                         projectId: { type: 'string' },
                     },
@@ -507,7 +506,7 @@ export class HammerTechMCPServer {
                     properties: {
                         skip: { type: 'number', description: 'Number of records to skip for pagination' },
                         take: { type: 'number', description: 'Number of records to take (max 100)' },
-                        sortBy: { type: 'string', description: 'Sort order' },
+                        sortBy: { type: 'string', enum: ['id', 'iddesc', 'name'], description: 'Sort job titles by specified field' },
                         modifiedSince: { type: 'string', description: 'ISO datetime to filter modified records' },
                         projectId: { type: 'string', description: 'Filter by project ID' },
                     },
@@ -824,30 +823,30 @@ export class HammerTechMCPServer {
     // Help Center handlers
     async handleHelpSearch(args) {
         return {
-            content: [{ 
-                type: 'text', 
-                text: `Help Center search is currently unavailable due to Cloudflare bot protection. Please access help.hammertech.com directly in your browser to search for "${args.q}".` 
-            }],
+            content: [{
+                    type: 'text',
+                    text: `Help Center search is currently unavailable due to Cloudflare bot protection. Please access help.hammertech.com directly in your browser to search for "${args.q}".`
+                }],
             isError: true,
         };
     }
     async handleHelpGet(args) {
         const { idOrSlug } = args;
         return {
-            content: [{ 
-                type: 'text', 
-                text: `Help Center articles are currently unavailable due to Cloudflare bot protection. Please access https://help.hammertech.com/hc/en-us/articles/${idOrSlug} directly in your browser.` 
-            }],
+            content: [{
+                    type: 'text',
+                    text: `Help Center articles are currently unavailable due to Cloudflare bot protection. Please access https://help.hammertech.com/hc/en-us/articles/${idOrSlug} directly in your browser.`
+                }],
             isError: true,
         };
     }
     async handleHelpSummarize(args) {
         const { idOrSlug } = args;
         return {
-            content: [{ 
-                type: 'text', 
-                text: `Help Center summarization is currently unavailable due to Cloudflare bot protection. Please access https://help.hammertech.com/hc/en-us/articles/${idOrSlug} directly in your browser to read the article.` 
-            }],
+            content: [{
+                    type: 'text',
+                    text: `Help Center summarization is currently unavailable due to Cloudflare bot protection. Please access https://help.hammertech.com/hc/en-us/articles/${idOrSlug} directly in your browser to read the article.`
+                }],
             isError: true,
         };
     }
@@ -856,11 +855,10 @@ export class HammerTechMCPServer {
         try {
             // Small delay to avoid rate limiting
             await new Promise(resolve => setTimeout(resolve, 500));
-            
             const slug = String(idOrSlug).replace(/^\/+|\/+$/g, '');
             const url = `https://help.hammertech.com/hc/${locale}/articles/${slug}`;
             const res = await fetch(url, {
-                headers: { 
+                headers: {
                     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
                     "Accept-Language": "en-US,en;q=0.5",
@@ -893,10 +891,9 @@ export class HammerTechMCPServer {
         try {
             // Small delay to avoid rate limiting
             await new Promise(resolve => setTimeout(resolve, 500));
-            
             const url = `https://help.hammertech.com/hc/${locale}/search?query=${encodeURIComponent(q)}`;
-            const res = await fetch(url, { 
-                headers: { 
+            const res = await fetch(url, {
+                headers: {
                     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
                     "Accept-Language": "en-US,en;q=0.5",
