@@ -130,6 +130,33 @@ export class HammerTechApiClient {
     async listEquipmentInductions(params) {
         return this.makeRequest('GET', '/api/v1/EquipmentInductions', undefined, params);
     }
+    // Equipment Profiles
+    async listEquipmentProfiles(params) {
+        return this.makeRequest('GET', '/api/v1/EquipmentProfiles', undefined, params);
+    }
+    async getEquipmentProfile(id) {
+        return this.makeRequest('GET', `/api/v1/EquipmentProfiles/${id}`);
+    }
+    async createEquipmentProfile(data) {
+        return this.makeRequest('POST', '/api/v1/EquipmentProfiles', data);
+    }
+    async deleteEquipmentProfile(id) {
+        return this.makeRequest('DELETE', `/api/v1/EquipmentProfiles/${id}`);
+    }
+    // Equipment Categories
+    async listEquipmentCategories(params) {
+        return this.makeRequest('GET', '/api/v1/EquipmentCategories', undefined, params);
+    }
+    async getEquipmentCategory(id) {
+        return this.makeRequest('GET', `/api/v1/EquipmentCategories/${id}`);
+    }
+    // Equipment Types
+    async listEquipmentTypes(params) {
+        return this.makeRequest('GET', '/api/v1/EquipmentTypes', undefined, params);
+    }
+    async getEquipmentType(id) {
+        return this.makeRequest('GET', `/api/v1/EquipmentTypes/${id}`);
+    }
     // Job Titles
     async listJobTitles(params) {
         return this.makeRequest('GET', '/api/v1/JobTitles', undefined, params);

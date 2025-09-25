@@ -180,6 +180,41 @@ export class HammerTechApiClient {
     return this.makeRequest<any[]>('GET', '/api/v1/EquipmentInductions', undefined, params);
   }
 
+  // Equipment Profiles
+  async listEquipmentProfiles(params?: ListParams): Promise<HammerTechApiResponse<any[]>> {
+    return this.makeRequest<any[]>('GET', '/api/v1/EquipmentProfiles', undefined, params);
+  }
+
+  async getEquipmentProfile(id: string): Promise<HammerTechApiResponse<any>> {
+    return this.makeRequest<any>('GET', `/api/v1/EquipmentProfiles/${id}`);
+  }
+
+  async createEquipmentProfile(data: any): Promise<HammerTechApiResponse<any>> {
+    return this.makeRequest<any>('POST', '/api/v1/EquipmentProfiles', data);
+  }
+
+  async deleteEquipmentProfile(id: string): Promise<HammerTechApiResponse<any>> {
+    return this.makeRequest<any>('DELETE', `/api/v1/EquipmentProfiles/${id}`);
+  }
+
+  // Equipment Categories
+  async listEquipmentCategories(params?: ListParams): Promise<HammerTechApiResponse<any[]>> {
+    return this.makeRequest<any[]>('GET', '/api/v1/EquipmentCategories', undefined, params);
+  }
+
+  async getEquipmentCategory(id: string): Promise<HammerTechApiResponse<any>> {
+    return this.makeRequest<any>('GET', `/api/v1/EquipmentCategories/${id}`);
+  }
+
+  // Equipment Types
+  async listEquipmentTypes(params?: ListParams): Promise<HammerTechApiResponse<any[]>> {
+    return this.makeRequest<any[]>('GET', '/api/v1/EquipmentTypes', undefined, params);
+  }
+
+  async getEquipmentType(id: string): Promise<HammerTechApiResponse<any>> {
+    return this.makeRequest<any>('GET', `/api/v1/EquipmentTypes/${id}`);
+  }
+
   // Job Titles
   async listJobTitles(params?: ListParams): Promise<HammerTechApiResponse<any[]>> {
     return this.makeRequest<any[]>('GET', '/api/v1/JobTitles', undefined, params);

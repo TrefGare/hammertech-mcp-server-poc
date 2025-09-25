@@ -41,6 +41,12 @@ const SORT_BY_EMPLOYERS_SCHEMA = {
   description: 'Sort employers by specified field'
 };
 
+const SORT_BY_EQUIPMENT_PROFILES_SCHEMA = {
+  type: 'string' as const,
+  enum: ['id', 'iddesc', 'make'] as const,
+  description: 'Sort equipment profiles by specified field'
+};
+
 export class HammerTechMCPServer {
   server: Server;
   apiClient: HammerTechApiClient | null = null;
@@ -126,6 +132,28 @@ export class HammerTechMCPServer {
           // Equipment Inductions  
           case 'list_equipment_inductions':
             return await this.handleListEquipmentInductions(args);
+
+          // Equipment Profiles
+          case 'list_equipment_profiles':
+            return await this.handleListEquipmentProfiles(args);
+          case 'get_equipment_profile':
+            return await this.handleGetEquipmentProfile(args);
+          case 'create_equipment_profile':
+            return await this.handleCreateEquipmentProfile(args);
+          case 'delete_equipment_profile':
+            return await this.handleDeleteEquipmentProfile(args);
+
+          // Equipment Categories
+          case 'list_equipment_categories':
+            return await this.handleListEquipmentCategories(args);
+          case 'get_equipment_category':
+            return await this.handleGetEquipmentCategory(args);
+
+          // Equipment Types
+          case 'list_equipment_types':
+            return await this.handleListEquipmentTypes(args);
+          case 'get_equipment_type':
+            return await this.handleGetEquipmentType(args);
 
           // IoT Vendors
           case 'list_iot_vendors':
@@ -421,6 +449,115 @@ export class HammerTechMCPServer {
             projectId: { type: 'string' },
             includeDeleted: { type: 'boolean' },
           },
+        },
+      },
+
+      // Equipment Profiles
+      {
+        name: 'list_equipment_profiles',
+        description: 'List equipment profiles (master records for construction equipment) with optional filtering and pagination',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            skip: { type: 'number' },
+            take: { type: 'number' },
+            sortBy: SORT_BY_EQUIPMENT_PROFILES_SCHEMA,
+            modifiedSince: { type: 'string' },
+            projectId: { type: 'string' },
+            includeDeleted: { type: 'boolean' },
+          },
+        },
+      },
+      {
+        name: 'get_equipment_profile',
+        description: 'Retrieve a specific equipment profile by ID',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', description: 'Equipment Profile ID' },
+          },
+          required: ['id'],
+        },
+      },
+      {
+        name: 'create_equipment_profile',
+        description: 'Create a new equipment profile record',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            make: { type: 'string', description: 'Equipment make/manufacturer' },
+            model: { type: 'string', description: 'Equipment model' },
+            year: { type: 'number', description: 'Manufacturing year' },
+            registrationNumber: { type: 'string', description: 'Registration/license number' },
+            equipmentTypeId: { type: 'string', description: 'Equipment Type ID', format: 'uuid' },
+            projectId: { type: 'string', description: 'Project ID', format: 'uuid' },
+          },
+          required: ['make', 'equipmentTypeId', 'projectId'],
+        },
+      },
+      {
+        name: 'delete_equipment_profile',
+        description: 'Delete an equipment profile by ID',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', description: 'Equipment Profile ID' },
+          },
+          required: ['id'],
+        },
+      },
+
+      // Equipment Categories
+      {
+        name: 'list_equipment_categories',
+        description: 'List equipment categories with optional filtering and pagination',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            skip: { type: 'number' },
+            take: { type: 'number' },
+            sortBy: SORT_BY_ID_NAME_SCHEMA,
+            modifiedSince: { type: 'string' },
+            projectId: { type: 'string' },
+          },
+        },
+      },
+      {
+        name: 'get_equipment_category',
+        description: 'Retrieve a specific equipment category by ID',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', description: 'Equipment Category ID' },
+          },
+          required: ['id'],
+        },
+      },
+
+      // Equipment Types
+      {
+        name: 'list_equipment_types',
+        description: 'List equipment types with optional filtering and pagination',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            skip: { type: 'number' },
+            take: { type: 'number' },
+            sortBy: SORT_BY_ID_NAME_SCHEMA,
+            modifiedSince: { type: 'string' },
+            projectId: { type: 'string' },
+          },
+        },
+      },
+      {
+        name: 'get_equipment_type',
+        description: 'Retrieve a specific equipment type by ID',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', description: 'Equipment Type ID' },
+          },
+          required: ['id'],
         },
       },
 
@@ -765,6 +902,70 @@ export class HammerTechMCPServer {
 
   async handleListEquipmentInductions(args: any) {
     const result = await this.apiClient!.listEquipmentInductions(args);
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    };
+  }
+
+  async handleListEquipmentProfiles(args: any) {
+    const result = await this.apiClient!.listEquipmentProfiles(args);
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    };
+  }
+
+  async handleGetEquipmentProfile(args: any) {
+    const result = await this.apiClient!.getEquipmentProfile(args.id);
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    };
+  }
+
+  async handleCreateEquipmentProfile(args: any) {
+    // Validate required fields
+    if (!args.make || !args.equipmentTypeId || !args.projectId) {
+      return {
+        content: [{ type: 'text', text: 'Error: make, equipmentTypeId, and projectId are required fields.' }],
+        isError: true,
+      };
+    }
+
+    const result = await this.apiClient!.createEquipmentProfile(args);
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    };
+  }
+
+  async handleDeleteEquipmentProfile(args: any) {
+    const result = await this.apiClient!.deleteEquipmentProfile(args.id);
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    };
+  }
+
+  async handleListEquipmentCategories(args: any) {
+    const result = await this.apiClient!.listEquipmentCategories(args);
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    };
+  }
+
+  async handleGetEquipmentCategory(args: any) {
+    const result = await this.apiClient!.getEquipmentCategory(args.id);
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    };
+  }
+
+  async handleListEquipmentTypes(args: any) {
+    const result = await this.apiClient!.listEquipmentTypes(args);
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    };
+  }
+
+  async handleGetEquipmentType(args: any) {
+    const result = await this.apiClient!.getEquipmentType(args.id);
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     };
